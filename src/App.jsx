@@ -17,6 +17,7 @@ import { PvpDuelPage } from './PvpDuelPage';
 import { AiDiagnosticsPage } from './AiDiagnosticsPage';
 import { VoiceEssayPage } from './VoiceEssayPage';
 import { FipiFormsPage } from './FipiFormsPage';
+import { SiteMapPage } from './SiteMapPage';
 import { SettingsModal } from './SettingsModal';
 import { AntiCheatShield, AntiCheatWatermark } from './AntiCheatShield';
 import './index.css';
@@ -354,6 +355,7 @@ function Navbar({ page, setPage, store, onOpenSettings }) {
 
   const studentTabs = [
     { id: 'home', label: 'Главная', icon: '🏠' },
+    { id: 'site_map', label: 'Схема движения', icon: '🗺️' },
     { id: 'ege_exam', label: 'Решать ЕГЭ', icon: '🎯' },
     { id: 'pvp_duel', label: 'Дуэли 1v1', icon: '⚔️' },
     { id: 'ai_diagnostics', label: 'ИИ-Диагност', icon: '🧠' },
@@ -372,6 +374,7 @@ function Navbar({ page, setPage, store, onOpenSettings }) {
 
   const teacherTabs = [
     { id: 'home', label: 'Кабинет', icon: '👩‍🏫' },
+    { id: 'site_map', label: 'Схема движения', icon: '🗺️' },
     { id: 'anticheat_monitor', label: 'Античит-монитор', icon: '🛡️' },
     { id: 'ai_diagnostics', label: 'ИИ-Диагностика', icon: '🧠' },
     { id: 'fipi_forms', label: 'Бланки ФИПИ А4', icon: '📄' },
@@ -441,6 +444,15 @@ function Navbar({ page, setPage, store, onOpenSettings }) {
             <span>{isTeacher ? '👩‍🏫 Учитель' : '🧑‍🎓 Ученик'}</span>
             <span className="text-[10px] opacity-70">🔒</span>
           </div>
+
+          {/* Quick Site Map Button */}
+          <button
+            onClick={() => handleNavClick('site_map')}
+            className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 transition-all shrink-0"
+            title="Интерактивная схема движения по платформе"
+          >
+            <span>🗺️ Схема движения</span>
+          </button>
         </div>
 
         {/* Tabs (Desktop & Tablet) */}
@@ -2393,6 +2405,8 @@ export default function App() {
       switch (page) {
         case 'home':
           return <TeacherCabinet store={store} setPage={setPage} />;
+        case 'site_map':
+          return <SiteMapPage store={store} setPage={setPage} />;
         case 'anticheat_monitor':
           return <TeacherAntiCheatMonitor />;
         case 'ai_diagnostics':
@@ -2426,6 +2440,8 @@ export default function App() {
     switch (page) {
       case 'home':
         return <StudentHome store={store} setPage={setPage} />;
+      case 'site_map':
+        return <SiteMapPage store={store} setPage={setPage} />;
       case 'pvp_duel':
         return <PvpDuelPage store={store} setPage={setPage} />;
       case 'ai_diagnostics':

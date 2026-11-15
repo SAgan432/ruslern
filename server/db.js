@@ -93,7 +93,7 @@ export function initDB() {
       'teacher@ruslearn.ru',
       'teacher123',
       'teacher',
-      'Анна Сергеевна (Учитель)',
+      'Лебедева Ольга Вячеславовна (Учитель)',
       '👩‍🏫',
       8,
       4200,
