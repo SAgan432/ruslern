@@ -50,9 +50,7 @@ function makeP(text, options = {}) {
       size: r.size || size,
       bold: r.bold || false,
       italic: r.italic || false,
-      language: {
-        value: RU_LANG
-      }
+      noProof: true, language: { value: RU_LANG }
     }));
   } else {
     textRuns = [new TextRun({
@@ -61,9 +59,7 @@ function makeP(text, options = {}) {
       size,
       bold,
       italic,
-      language: {
-        value: RU_LANG
-      }
+      noProof: true, language: { value: RU_LANG }
     })];
   }
 
@@ -93,7 +89,7 @@ function makeHeading(title) {
         font: FONT_FAMILY,
         size: SIZE_MAIN,
         bold: true,
-        language: { value: RU_LANG }
+        noProof: true, language: { value: RU_LANG }
       })
     ]
   });
@@ -114,7 +110,7 @@ function makeSubHeading(title) {
         font: FONT_FAMILY,
         size: SIZE_MAIN,
         bold: true,
-        language: { value: RU_LANG }
+        noProof: true, language: { value: RU_LANG }
       })
     ]
   });
@@ -122,18 +118,14 @@ function makeSubHeading(title) {
 
 async function generateDoc() {
   const doc = new Document({
-    language: {
-      value: "ru-RU"
-    },
+    noProof: true, language: { value: "ru-RU" },
     styles: {
       default: {
         document: {
           run: {
             font: FONT_FAMILY,
             size: SIZE_MAIN,
-            language: {
-              value: "ru-RU"
-            }
+            noProof: true, language: { value: "ru-RU" }
           },
           paragraph: {
             spacing: {
@@ -263,7 +255,7 @@ async function generateDoc() {
                     children: [PageNumber.CURRENT],
                     font: FONT_FAMILY,
                     size: 24,
-                    language: { value: RU_LANG }
+                    noProof: true, language: { value: RU_LANG }
                   })
                 ]
               })

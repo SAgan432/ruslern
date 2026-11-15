@@ -1,12 +1,17 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { db, initDB } from './db.js';
 
 // Инициализируем БД
 initDB();
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distPath = path.join(__dirname, '..', 'dist');
 
 app.use(cors());
 app.use(express.json());
@@ -414,6 +419,13 @@ app.get('/api/diagnostics/user/:id', (req, res) => {
   } catch (err) {
     return res.status(500).json({ error: 'Ошибка расчёта диагностики' });
   }
+});
+
+// Раздача статики фронтенда в продакшене
+app.use(express.static(distPath));
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 export { app };
