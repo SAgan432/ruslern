@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { sounds } from './sounds';
 
-export function SettingsModal({ isOpen, onClose, currentTheme, onSelectTheme }) {
+export function SettingsModal({ isOpen, onClose, currentTheme, onSelectTheme, store }) {
   const [voices, setVoices] = useState([]);
   const [selectedVoice, setSelectedVoice] = useState(sounds.voiceUri || '');
   const [rate, setRate] = useState(sounds.voiceRate || 0.95);
   const [pitch, setPitch] = useState(sounds.voicePitch || 1.0);
   const [soundPreset, setSoundPreset] = useState(sounds.soundPreset || 'cyberpunk');
+  const [oldPwd, setOldPwd] = useState('');
+  const [newPwd, setNewPwd] = useState('');
+  const [pwdMsg, setPwdMsg] = useState('');
 
   useEffect(() => {
     const list = sounds.getAvailableVoices();
@@ -50,7 +53,7 @@ export function SettingsModal({ isOpen, onClose, currentTheme, onSelectTheme }) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="card max-w-lg w-full p-6 space-y-6 border-purple-500/50 bg-slate-950 shadow-2xl">
+      <div className="card max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-5 border-purple-500/50 bg-slate-950 shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
           <div className="flex items-center gap-2">
@@ -188,6 +191,57 @@ export function SettingsModal({ isOpen, onClose, currentTheme, onSelectTheme }) 
             ))}
           </div>
         </div>
+
+        {/* Section 4: Смена пароля */}
+        {store?.state?.user && (
+          <div className="space-y-2 border-t border-white/10 pt-4">
+            <label className="block text-xs font-bold text-purple-300 uppercase tracking-wider">
+              🔐 Безопасность (смена пароля для {store.state.user.username}):
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="password"
+                placeholder="Старый пароль"
+                className="input-field py-2 text-xs"
+                value={oldPwd}
+                onChange={e => setOldPwd(e.target.value)}
+              />
+              <input
+                type="password"
+                placeholder="Новый пароль"
+                className="input-field py-2 text-xs"
+                value={newPwd}
+                onChange={e => setNewPwd(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-emerald-300">{pwdMsg}</span>
+              <button
+                type="button"
+                onClick={async () => {
+                  setPwdMsg('');
+                  try {
+                    const res = await fetch('/api/auth/change-password', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId: store.state.user.id, oldPassword: oldPwd, newPassword: newPwd })
+                    });
+                    const d = await res.json();
+                    if (!res.ok) throw new Error(d.error);
+                    setOldPwd('');
+                    setNewPwd('');
+                    setPwdMsg('✅ Пароль успешно обновлён');
+                  } catch (err) {
+                    setPwdMsg(`❌ ${err.message}`);
+                  }
+                }}
+                className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white"
+              >
+                Обновить пароль
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Done Button */}
         <button

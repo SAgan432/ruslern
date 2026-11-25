@@ -55,9 +55,9 @@ export function AiDiagnosticsPage({ store, setPage }) {
   // Запуск работы над ошибками
   const handleStartWorkout = () => {
     sounds.click();
-    // Собираем вопросы из западающих тем (chered, pre_pri, orthoepy)
+    // Собираем вопросы из западающих тем (chered, pristavki, orfoepia)
     const qs1 = generateQuestions('chered', 'all', 3);
-    const qs2 = generateQuestions('pre_pri', 'all', 3);
+    const qs2 = generateQuestions('pristavki', 'all', 3);
     const combined = [...qs1, ...qs2].sort(() => Math.random() - 0.5);
 
     setWorkoutQuestions(combined);
@@ -250,8 +250,9 @@ export function AiDiagnosticsPage({ store, setPage }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {diagnostics?.topics.map(topic => {
-            const isDanger = topic.accuracy < 65;
-            const isWarning = topic.accuracy >= 65 && topic.accuracy < 80;
+            const untested = topic.accuracy === null || topic.accuracy === undefined;
+            const isDanger = !untested && topic.accuracy < 65;
+            const isWarning = !untested && topic.accuracy >= 65 && topic.accuracy < 80;
             const isSelected = selectedTopic?.id === topic.id;
 
             return (
@@ -261,6 +262,8 @@ export function AiDiagnosticsPage({ store, setPage }) {
                 className={`p-4 rounded-2xl border text-left transition-all ${
                   isSelected
                     ? 'border-purple-400 bg-purple-950/40 shadow-xl scale-[1.02]'
+                    : untested
+                    ? 'border-white/10 bg-white/5 hover:border-blue-400/40'
                     : isDanger
                     ? 'border-rose-500/40 bg-rose-950/20 hover:border-rose-500'
                     : isWarning
@@ -270,12 +273,12 @@ export function AiDiagnosticsPage({ store, setPage }) {
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                    isDanger ? 'bg-rose-500/20 text-rose-300' : isWarning ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'
+                    untested ? 'bg-blue-500/20 text-blue-300' : isDanger ? 'bg-rose-500/20 text-rose-300' : isWarning ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'
                   }`}>
-                    {isDanger ? '⚠️ Критическая зона' : isWarning ? '⚡ Внимание' : '✓ Освоено'}
+                    {untested ? '📘 Не сдавалось' : isDanger ? '⚠️ Критическая зона' : isWarning ? '⚡ Внимание' : '✓ Освоено'}
                   </span>
                   <span className="font-mono font-black text-sm text-white">
-                    {topic.accuracy}%
+                    {untested ? '—' : `${topic.accuracy}%`}
                   </span>
                 </div>
 
@@ -295,7 +298,9 @@ export function AiDiagnosticsPage({ store, setPage }) {
               <span className="text-[11px] font-bold text-purple-400 uppercase tracking-wider">Детальный анализ:</span>
               <h2 className="text-lg font-black text-white">{selectedTopic.title}</h2>
             </div>
-            <span className="text-2xl font-black text-purple-300">{selectedTopic.accuracy}%</span>
+            <span className="text-2xl font-black text-purple-300">
+              {selectedTopic.accuracy === null || selectedTopic.accuracy === undefined ? '—' : `${selectedTopic.accuracy}%`}
+            </span>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4 text-xs">

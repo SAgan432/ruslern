@@ -18,6 +18,8 @@ import { AiDiagnosticsPage } from './AiDiagnosticsPage';
 import { VoiceEssayPage } from './VoiceEssayPage';
 import { FipiFormsPage } from './FipiFormsPage';
 import { SiteMapPage } from './SiteMapPage';
+import { ReshuOgePage } from './ReshuOgePage';
+import { StudentsManagementPage, AssignmentsHubPage, LeaderboardPage } from './ModerationAndAssignments';
 import { SettingsModal } from './SettingsModal';
 import { AntiCheatShield, AntiCheatWatermark } from './AntiCheatShield';
 import './index.css';
@@ -59,16 +61,31 @@ function AuthView({ store }) {
   const [regUsername, setRegUsername] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [regClass, setRegClass] = useState('9Б');
+  const [regCustomClass, setRegCustomClass] = useState('');
   const [regRole, setRegRole] = useState('student');
   const [teacherCode, setTeacherCode] = useState('');
+  const [classesList, setClassesList] = useState(['5А', '5Б', '6А', '6Б', '7А', '7Б', '8А', '8Б', '9А', '9Б', '9В', '10А', '11А']);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login, register } = store;
+  const { login, register, banNotice, clearBanNotice } = store;
+
+  useEffect(() => {
+    fetch('/api/classes')
+      .then(r => r.json())
+      .then(d => {
+        if (d.classes && d.classes.length > 0) {
+          setClassesList(d.classes.map(c => c.name));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleLogin = async (e) => {
     if (e) e.preventDefault();
     setError('');
+    if (clearBanNotice) clearBanNotice();
     setLoading(true);
     sounds.click();
     try {
@@ -81,31 +98,21 @@ function AuthView({ store }) {
     }
   };
 
-  const handleQuickLogin = async (l, p) => {
-    sounds.click();
-    setError('');
-    setLoading(true);
-    try {
-      await login(l, p);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleRegister = async (e) => {
     if (e) e.preventDefault();
     setError('');
+    if (clearBanNotice) clearBanNotice();
     setLoading(true);
     sounds.click();
     try {
+      const chosenClass = regClass === '__custom__' ? regCustomClass : regClass;
       await register({
         name: regName,
         username: regUsername,
         email: regEmail,
         password: regPassword,
         role: regRole,
+        className: chosenClass,
         teacherCode,
         avatar: regRole === 'teacher' ? '👩‍🏫' : '🧑‍🎓',
       });
@@ -118,30 +125,41 @@ function AuthView({ store }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 relative z-10 py-12">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 relative z-10 py-10">
       <Particles />
 
       {/* Brand Header */}
-      <div className="text-center mb-8 max-w-xl">
-        <div className="inline-block p-4 rounded-3xl mb-4 shadow-2xl"
+      <div className="text-center mb-6 max-w-xl">
+        <div className="inline-block p-4 rounded-3xl mb-3 shadow-2xl"
           style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.3), rgba(236,72,153,0.3))', border: '1px solid rgba(124,58,237,0.5)' }}>
-          <span className="text-5xl">📚</span>
+          <span className="text-4xl sm:text-5xl">📚</span>
         </div>
-        <h1 className="text-5xl md:text-6xl font-black mb-3">
+        <h1 className="text-4xl sm:text-6xl font-black mb-2">
           <span className="gradient-text">РусЛёрн</span>
         </h1>
-        <p className="text-gray-300 text-sm sm:text-base">
-          Платформа по русскому языку с базой данных, раздельным доступом и защитой от списывания
+        <p className="text-gray-300 text-xs sm:text-sm">
+          Официальная учебная платформа МАОУ СОШ № 40 · ОГЭ / ЕГЭ, классы и контроль честности
         </p>
       </div>
 
-      <div className="card w-full max-w-md p-6 sm:p-8 space-y-6" style={{ background: 'rgba(26, 26, 46, 0.9)', borderColor: 'rgba(124,58,237,0.4)' }}>
+      {/* Уведомление о бане */}
+      {banNotice && (
+        <div className="w-full max-w-md mb-4 p-4 rounded-2xl bg-rose-950/80 border-2 border-rose-500 text-rose-100 text-xs sm:text-sm space-y-1 shadow-xl">
+          <div className="font-black text-rose-300 flex items-center gap-2">
+            <span>🔨</span> АККАУНТ ЗАБЛОКИРОВАН УЧИТЕЛЕМ
+          </div>
+          <div>Причина: <strong>{banNotice}</strong></div>
+          <div className="text-[11px] text-rose-200/80">Обратитесь к учителю для смены ника или разблокировки.</div>
+        </div>
+      )}
+
+      <div className="card w-full max-w-md p-6 sm:p-8 space-y-5" style={{ background: 'rgba(22, 22, 42, 0.94)', borderColor: 'rgba(124,58,237,0.4)' }}>
         {/* Tabs: Login / Register */}
         <div className="grid grid-cols-2 p-1 rounded-xl bg-black/40 border border-white/10">
           <button
             type="button"
             onClick={() => { sounds.click(); setTab('login'); setError(''); }}
-            className={`py-2 text-xs font-bold rounded-lg transition-all ${
+            className={`py-2.5 text-xs font-bold rounded-lg transition-all ${
               tab === 'login' ? 'bg-purple-600 text-white shadow' : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -150,11 +168,11 @@ function AuthView({ store }) {
           <button
             type="button"
             onClick={() => { sounds.click(); setTab('register'); setError(''); }}
-            className={`py-2 text-xs font-bold rounded-lg transition-all ${
+            className={`py-2.5 text-xs font-bold rounded-lg transition-all ${
               tab === 'register' ? 'bg-purple-600 text-white shadow' : 'text-gray-400 hover:text-white'
             }`}
           >
-            Регистрация
+            Регистрация ученика
           </button>
         </div>
 
@@ -175,7 +193,7 @@ function AuthView({ store }) {
                 type="text"
                 required
                 className="input-field text-sm"
-                placeholder="ivan или teacher"
+                placeholder="Введите ваш логин..."
                 value={loginInput}
                 onChange={e => setLoginInput(e.target.value)}
               />
@@ -198,90 +216,103 @@ function AuthView({ store }) {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full py-3 text-sm font-bold text-center disabled:opacity-50"
+              className="btn-primary w-full py-3.5 text-sm font-bold text-center disabled:opacity-50"
             >
-              {loading ? 'Проверка...' : 'Войти в систему ➜'}
+              {loading ? 'Проверка в базе...' : 'Войти в систему ➜'}
             </button>
 
-            {/* Quick Demo Logins */}
-            <div className="pt-4 border-t border-white/10 space-y-2">
-              <div className="text-[11px] font-bold text-gray-400 text-center uppercase tracking-wider">
-                Быстрый вход для проверки:
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('ivan', 'student123')}
-                  className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/30 text-purple-300 hover:bg-purple-900/40 text-xs font-bold text-left"
-                >
-                  <div>🧑‍🎓 Ученик (Иван)</div>
-                  <div className="text-[10px] text-gray-400 font-normal">пароль: student123</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('teacher', 'teacher123')}
-                  className="p-2.5 rounded-xl bg-pink-950/40 border border-pink-500/30 text-pink-300 hover:bg-pink-900/40 text-xs font-bold text-left"
-                >
-                  <div>👩‍🏫 Учитель (Анна С.)</div>
-                  <div className="text-[10px] text-gray-400 font-normal">пароль: teacher123</div>
-                </button>
-              </div>
-            </div>
+            <p className="text-[11px] text-gray-400 text-center pt-2">
+              Впервые на сайте? Нажмите вкладку <strong>«Регистрация ученика»</strong> сверху и выберите свой класс.
+            </p>
           </form>
         ) : (
           <form onSubmit={handleRegister} className="space-y-3">
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">ФИО / Отображаемое имя</label>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Фамилия и Имя (настоящие!)</label>
               <input
                 type="text"
                 required
-                className="input-field text-xs py-2"
-                placeholder="Иван Иванов"
+                className="input-field text-xs py-2.5"
+                placeholder="Например: Петров Алексей"
                 value={regName}
                 onChange={e => setRegName(e.target.value)}
               />
+              <p className="text-[10px] text-amber-300/80 mt-1">
+                ⚠️ За нецензурные или фейковые ники аккаунт блокируется учителем.
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Логин</label>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Логин (англ.)</label>
                 <input
                   type="text"
                   required
                   className="input-field text-xs py-2"
-                  placeholder="ivan_9a"
+                  placeholder="petrov_9b"
                   value={regUsername}
                   onChange={e => setRegUsername(e.target.value)}
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Email</label>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Пароль</label>
                 <input
-                  type="email"
+                  type="password"
                   required
                   className="input-field text-xs py-2"
-                  placeholder="ivan@mail.ru"
+                  placeholder="От 4 символов"
+                  value={regPassword}
+                  onChange={e => setRegPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {regRole === 'student' && (
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Твой класс</label>
+                  <select
+                    className="input-field text-xs py-2 bg-slate-900"
+                    value={regClass}
+                    onChange={e => setRegClass(e.target.value)}
+                  >
+                    {classesList.map(c => (
+                      <option key={c} value={c}>{c} класс</option>
+                    ))}
+                    <option value="__custom__">Другой класс...</option>
+                  </select>
+                </div>
+              )}
+
+              <div className={regRole === 'teacher' ? 'col-span-2' : ''}>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Email (необязат.)</label>
+                <input
+                  type="email"
+                  className="input-field text-xs py-2"
+                  placeholder="student@mail.ru"
                   value={regEmail}
                   onChange={e => setRegEmail(e.target.value)}
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Пароль</label>
-              <input
-                type="password"
-                required
-                className="input-field text-xs py-2"
-                placeholder="Придумайте пароль"
-                value={regPassword}
-                onChange={e => setRegPassword(e.target.value)}
-              />
-            </div>
+            {regRole === 'student' && regClass === '__custom__' && (
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Напишите класс (напр. 9Г)</label>
+                <input
+                  type="text"
+                  required
+                  className="input-field text-xs py-2"
+                  placeholder="9Г"
+                  value={regCustomClass}
+                  onChange={e => setRegCustomClass(e.target.value)}
+                />
+              </div>
+            )}
 
             {/* Role picker */}
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Роль аккаунта</label>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Кто вы?</label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -308,32 +339,28 @@ function AuthView({ store }) {
               </div>
             </div>
 
-            {/* Teacher verification code protection! */}
             {regRole === 'teacher' && (
-              <div className="p-3 rounded-xl bg-pink-950/30 border border-pink-500/40 space-y-1.5 animate-fadeIn">
+              <div className="p-3 rounded-xl bg-pink-950/30 border border-pink-500/40 space-y-1.5">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-pink-300">
-                  <span>🔒</span> Секретный проверочный ключ учителя
+                  <span>🔒</span> Проверочный код школы (для учителей)
                 </div>
                 <input
-                  type="text"
+                  type="password"
                   required
                   className="input-field text-xs py-2 border-pink-500/50"
-                  placeholder="Введи секретный ключ учителя..."
+                  placeholder="Введите секретный код учителя..."
                   value={teacherCode}
                   onChange={e => setTeacherCode(e.target.value)}
                 />
-                <p className="text-[10px] text-pink-300/80">
-                  Для защиты от учеников требуется код школы: <strong className="text-white">RUS-TEACHER-2026</strong>
-                </p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full py-2.5 text-xs font-bold text-center mt-2 disabled:opacity-50"
+              className="btn-primary w-full py-3 text-xs font-bold text-center mt-2 disabled:opacity-50"
             >
-              {loading ? 'Создание...' : 'Зарегистрироваться 🚀'}
+              {loading ? 'Создание профиля...' : 'Зарегистрироваться 🚀'}
             </button>
           </form>
         )}
@@ -343,81 +370,120 @@ function AuthView({ store }) {
 }
 
 // =============================================================================
-// NAVBAR С ЖЁСТКИМ РАЗГРАНИЧЕНИЕМ ПРАВ
+// NAVBAR: УДОБНОЕ ВЕРХНЕЕ МЕНЮ ДЛЯ ПК (БЕЗ ОБРЕЗАНИЯ) И ПОНЯТНЫЙ ИНТЕРФЕЙС ТЕЛЕФОНА
 // =============================================================================
-function Navbar({ page, setPage, store, onOpenSettings }) {
+function Navbar({ page, setPage, store, onOpenSettings, pendingAssignmentsCount = 0 }) {
   const { state, logout, toggleSound } = store;
   const user = state.user;
   const lp = store.getLevelProgress();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const moreRef = useRef(null);
 
   const isTeacher = user?.role === 'teacher';
 
-  const studentTabs = [
-    { id: 'home', label: 'Главная', icon: '🏠' },
-    { id: 'site_map', label: 'Схема движения', icon: '🗺️' },
-    { id: 'ege_exam', label: 'Решать ЕГЭ', icon: '🎯' },
-    { id: 'pvp_duel', label: 'Дуэли 1v1', icon: '⚔️' },
-    { id: 'ai_diagnostics', label: 'ИИ-Диагност', icon: '🧠' },
-    { id: 'voice_essay', label: 'Голосовое сочинение', icon: '🎤' },
-    { id: 'formulas', label: 'Формулы', icon: '⚡' },
-    { id: 'blitz_sprint', label: 'Спринт 60с', icon: '⚡' },
-    { id: 'fipi_forms', label: 'Бланки ФИПИ', icon: '📄' },
-    { id: 'pamyatki', label: 'Памятки', icon: '📖' },
-    { id: 'generator', label: 'Генератор', icon: '🎲' },
-    { id: 'exam_tasks', label: 'Тестирование', icon: '🛡️' },
-    { id: 'orthoepy', label: 'Ударения', icon: '🎙️' },
-    { id: 'paronyms', label: 'Паронимы', icon: '👥' },
-    { id: 'dictation', label: 'Диктант', icon: '✍️' },
-    { id: 'achievements', label: 'Награды', icon: '🏆' },
-  ];
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (moreRef.current && !moreRef.current.contains(e.target)) {
+        setMoreMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
 
-  const teacherTabs = [
+  // Главные 6 вкладок на ПК — помещаются на любой экран БЕЗ горизонтальной прокрутки!
+  const desktopPrimaryTabs = isTeacher ? [
     { id: 'home', label: 'Кабинет', icon: '👩‍🏫' },
-    { id: 'site_map', label: 'Схема движения', icon: '🗺️' },
-    { id: 'anticheat_monitor', label: 'Античит-монитор', icon: '🛡️' },
-    { id: 'ai_diagnostics', label: 'ИИ-Диагностика', icon: '🧠' },
-    { id: 'fipi_forms', label: 'Бланки ФИПИ А4', icon: '📄' },
-    { id: 'voice_essay', label: 'Голосовое сочинение', icon: '🎤' },
-    { id: 'ege_exam', label: 'Тренажёр ЕГЭ', icon: '🎯' },
-    { id: 'formulas', label: 'Формулы', icon: '⚡' },
-    { id: 'generator', label: 'Генератор вариантов', icon: '🎲' },
-    { id: 'essay_checker', label: 'Чекер сочинений', icon: '📑' },
-    { id: 'students', label: 'Журнал класса', icon: '👥' },
-    { id: 'pamyatki', label: 'Памятки', icon: '📖' },
-  ];
-
-  const currentTabs = isTeacher ? teacherTabs : studentTabs;
-
-  // Главные 4 таба для мобильной панели (5-й - "Ещё")
-  const mobilePrimaryTabs = isTeacher ? [
-    { id: 'home', label: 'Кабинет', icon: '👩‍🏫' },
+    { id: 'reshu_oge', label: 'Решу ОГЭ', icon: '📘' },
+    { id: 'students', label: 'Ученики', icon: '👥' },
+    { id: 'assignments', label: 'Задания', icon: '📋' },
     { id: 'anticheat_monitor', label: 'Античит', icon: '🛡️' },
-    { id: 'fipi_forms', label: 'Бланки', icon: '📄' },
-    { id: 'ege_exam', label: 'ЕГЭ', icon: '🎯' },
+    { id: 'fipi_forms', label: 'Бланки А4', icon: '📄' },
   ] : [
     { id: 'home', label: 'Главная', icon: '🏠' },
-    { id: 'ege_exam', label: 'ЕГЭ', icon: '🎯' },
+    { id: 'reshu_oge', label: 'Решу ОГЭ', icon: '📘' },
+    { id: 'ege_exam', label: 'ЕГЭ 2026', icon: '🎯' },
+    { id: 'assignments', label: 'Задания', icon: '📌', badge: pendingAssignmentsCount },
     { id: 'pvp_duel', label: 'Дуэли', icon: '⚔️' },
-    { id: 'ai_diagnostics', label: 'Диагност', icon: '🧠' },
+    { id: 'leaderboard', label: 'Рейтинг', icon: '🏆' },
+  ];
+
+  // Полный каталог разделов (для выпадающего меню «Ещё» на ПК и Drawer-меню на телефоне)
+  const groupedSections = [
+    {
+      group: '📘 Экзамены и Контроль',
+      items: [
+        { id: 'reshu_oge', label: 'Решу ОГЭ (Задания 2–12)', icon: '📘' },
+        { id: 'ege_exam', label: 'Полный вариант ЕГЭ (27)', icon: '🎯' },
+        { id: 'assignments', label: isTeacher ? 'Задания классам и личные' : 'Задания от учителя', icon: '📌', badge: !isTeacher ? pendingAssignmentsCount : 0 },
+        { id: 'exam_tasks', label: 'Контрольный тест (Античит)', icon: '🛡️' },
+        { id: 'fipi_forms', label: 'Печать бланков ФИПИ А4', icon: '📄' },
+      ]
+    },
+    {
+      group: '⚡ Тренажёры и ИИ',
+      items: [
+        { id: 'ai_diagnostics', label: 'ИИ-Диагностика пробелов', icon: '🧠' },
+        { id: 'formulas', label: 'Формулы без зубрёжки', icon: '⚡' },
+        { id: 'blitz_sprint', label: 'Блиц-спринт (60 сек)', icon: '⏱️' },
+        { id: 'orthoepy', label: 'Ударения ФИПИ', icon: '🎙️' },
+        { id: 'paronyms', label: 'Словарь паронимов', icon: '🔤' },
+        { id: 'dictation', label: 'Аудио-диктант', icon: '✍️' },
+      ]
+    },
+    {
+      group: '✍️ Сочинения, Рейтинг и Школа',
+      items: [
+        { id: 'voice_essay', label: 'Голосовое сочинение', icon: '🎤' },
+        { id: 'pamyatki', label: 'База памяток (5–11 кл.)', icon: '📖' },
+        { id: 'pvp_duel', label: 'PVP Дуэли 1 на 1', icon: '⚔️' },
+        { id: 'leaderboard', label: 'Рейтинг класса и школы', icon: '🏆' },
+        { id: 'achievements', label: 'Мои награды и трофеи', icon: '🎖️' },
+        { id: 'site_map', label: 'Схема движения по сайту', icon: '🗺️' },
+      ]
+    },
+    ...(isTeacher ? [{
+      group: '👩‍🏫 Инструменты учителя',
+      items: [
+        { id: 'students', label: 'Ученики, классы, баны', icon: '👥' },
+        { id: 'anticheat_monitor', label: 'Античит-монитор SQLite', icon: '🚨' },
+        { id: 'generator', label: 'Генератор 2 вариантов А4', icon: '🎲' },
+        { id: 'essay_checker', label: 'Чекер сочинений К1–К12', icon: '📑' },
+      ]
+    }] : [])
+  ];
+
+  // 4 понятные кнопки в нижней панели телефона (+ 5-я «Меню»)
+  const mobilePrimaryTabs = isTeacher ? [
+    { id: 'home', label: 'Кабинет', icon: '👩‍🏫' },
+    { id: 'students', label: 'Ученики', icon: '👥' },
+    { id: 'assignments', label: 'Задания', icon: '📋' },
+    { id: 'anticheat_monitor', label: 'Античит', icon: '🛡️' },
+  ] : [
+    { id: 'home', label: 'Главная', icon: '🏠' },
+    { id: 'reshu_oge', label: 'Решу ОГЭ', icon: '📘' },
+    { id: 'assignments', label: 'Задания', icon: '📌', badge: pendingAssignmentsCount },
+    { id: 'leaderboard', label: 'Рейтинг', icon: '🏆' },
   ];
 
   const handleNavClick = (tabId) => {
     sounds.click();
     setPage(tabId);
     setDrawerOpen(false);
+    setMoreMenuOpen(false);
   };
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 h-16 px-3 sm:px-4 flex items-center justify-between gap-3 safe-top"
+      <nav className="fixed top-0 left-0 right-0 z-50 h-16 px-3 sm:px-5 flex items-center justify-between gap-2 safe-top"
         style={{
-          background: 'rgba(15, 15, 26, 0.94)',
-          backdropFilter: 'blur(16px)',
-          borderBottom: '1px solid rgba(124, 58, 237, 0.25)',
+          background: 'rgba(15, 15, 26, 0.96)',
+          backdropFilter: 'blur(18px)',
+          borderBottom: '1px solid rgba(124, 58, 237, 0.3)',
         }}>
-        {/* Logo & Role Badge */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        {/* Logo & Class Badge */}
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => handleNavClick('home')}
             className="flex items-center gap-2 group text-left"
@@ -427,107 +493,134 @@ function Navbar({ page, setPage, store, onOpenSettings }) {
               Р
             </div>
             <div>
-              <div className="text-base font-black tracking-tight gradient-text">РусЛёрн</div>
-              <div className="text-[9px] text-gray-400 -mt-1 hidden sm:block">ЕГЭ & База данных</div>
+              <div className="text-base font-black tracking-tight gradient-text whitespace-nowrap">РусЛёрн</div>
+              <div className="text-[10px] text-gray-400 -mt-1 hidden 2xl:block whitespace-nowrap">ОГЭ / ЕГЭ · СОШ №40</div>
             </div>
           </button>
 
-          {/* Fixed Role Badge (NO CHEATING SWITCHER!) */}
           <div
-            className="px-2 py-0.5 rounded-lg text-[11px] font-bold flex items-center gap-1 shrink-0"
+            className="px-2 py-0.5 rounded-lg text-[11px] font-bold flex items-center gap-1 shrink-0 whitespace-nowrap"
             style={{
-              background: isTeacher ? 'rgba(236,72,153,0.15)' : 'rgba(124,58,237,0.15)',
-              border: `1px solid ${isTeacher ? 'rgba(236,72,153,0.4)' : 'rgba(124,58,237,0.4)'}`,
-              color: isTeacher ? '#f472b6' : '#a78bfa'
+              background: isTeacher ? 'rgba(236,72,153,0.18)' : 'rgba(59,130,246,0.18)',
+              border: `1px solid ${isTeacher ? 'rgba(236,72,153,0.4)' : 'rgba(59,130,246,0.4)'}`,
+              color: isTeacher ? '#f472b6' : '#93c5fd'
             }}
           >
-            <span>{isTeacher ? '👩‍🏫 Учитель' : '🧑‍🎓 Ученик'}</span>
-            <span className="text-[10px] opacity-70">🔒</span>
+            <span>{isTeacher ? '👩‍🏫 Учитель' : `🧑‍🎓 ${user?.class_name || 'Ученик'}`}</span>
           </div>
-
-          {/* Quick Site Map Button */}
-          <button
-            onClick={() => handleNavClick('site_map')}
-            className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 transition-all shrink-0"
-            title="Интерактивная схема движения по платформе"
-          >
-            <span>🗺️ Схема движения</span>
-          </button>
         </div>
 
-        {/* Tabs (Desktop & Tablet) */}
-        <div className="hidden lg:flex items-center gap-1 overflow-x-auto max-w-[55vw] py-1 no-scrollbar">
-          {currentTabs.map(tab => (
+        {/* Desktop Center Navigation: 6 главных кнопок + Мега-меню «Все разделы ▾» (в одну строку без обрезания!) */}
+        <div className="hidden lg:flex items-center gap-1">
+          {desktopPrimaryTabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => handleNavClick(tab.id)}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all duration-200 shrink-0 ${
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all relative whitespace-nowrap shrink-0 ${
                 page === tab.id
-                  ? 'text-white shadow-sm'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                  ? 'text-white shadow-md'
+                  : 'text-gray-300 hover:text-white hover:bg-white/10'
               }`}
               style={page === tab.id ? {
-                background: 'linear-gradient(135deg, rgba(124,58,237,0.35), rgba(236,72,153,0.25))',
-                border: '1px solid rgba(124,58,237,0.5)',
+                background: 'linear-gradient(135deg, rgba(124,58,237,0.45), rgba(236,72,153,0.3))',
+                border: '1px solid rgba(124,58,237,0.6)',
               } : {}}
             >
               <span>{tab.icon}</span>
               <span>{tab.label}</span>
+              {tab.badge > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-black">
+                  {tab.badge}
+                </span>
+              )}
             </button>
           ))}
+
+          {/* Выпадающее меню ВСЕ РАЗДЕЛЫ на ПК */}
+          <div className="relative shrink-0" ref={moreRef}>
+            <button
+              onClick={() => { sounds.click(); setMoreMenuOpen(o => !o); }}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all whitespace-nowrap ${
+                moreMenuOpen
+                  ? 'bg-purple-600 text-white border-purple-400'
+                  : 'bg-white/5 text-purple-200 border-white/15 hover:bg-white/10'
+              }`}
+            >
+              <span>📂 Все разделы</span>
+              <span className="text-[10px]">{moreMenuOpen ? '▲' : '▼'}</span>
+            </button>
+
+            {moreMenuOpen && (
+              <div className="absolute right-0 mt-2 w-[620px] max-w-[90vw] p-5 rounded-2xl bg-[#131324] border border-purple-500/40 shadow-2xl grid grid-cols-2 gap-4 z-50 animate-fadeIn">
+                {groupedSections.map(sec => (
+                  <div key={sec.group} className="space-y-1.5">
+                    <div className="text-[11px] font-black text-purple-300 uppercase tracking-wider px-2 pb-1 border-b border-white/10">
+                      {sec.group}
+                    </div>
+                    {sec.items.map(it => (
+                      <button
+                        key={it.id}
+                        onClick={() => handleNavClick(it.id)}
+                        className={`w-full px-2.5 py-1.5 rounded-xl text-left text-xs font-semibold flex items-center justify-between gap-2 transition-all ${
+                          page === it.id ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 truncate">
+                          <span>{it.icon}</span>
+                          <span className="truncate">{it.label}</span>
+                        </span>
+                        {it.badge > 0 && (
+                          <span className="px-1.5 rounded-full bg-rose-500 text-white text-[10px] font-black">{it.badge}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* User Stats & Logout */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {/* Right Controls */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {!isTeacher && user && (
-            <div className="hidden sm:flex flex-col items-end">
-              <div className="flex items-center gap-2 text-xs">
+            <button
+              onClick={() => handleNavClick('achievements')}
+              className="hidden xl:flex flex-col items-end hover:opacity-80"
+              title="Перейти к наградам"
+            >
+              <div className="flex items-center gap-1.5 text-xs">
                 <span className="font-bold text-purple-300">Ур. {user.level || 1}</span>
                 <span className="text-gray-400">{user.xp || 0} XP</span>
               </div>
-              <div className="w-24 h-1.5 rounded-full mt-1 overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
-                <div className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${lp.percent}%`,
-                    background: 'linear-gradient(90deg, #7c3aed, #ec4899)'
-                  }} />
+              <div className="w-20 h-1.5 rounded-full mt-0.5 overflow-hidden bg-white/10">
+                <div className="h-full rounded-full" style={{ width: `${lp.percent}%`, background: 'linear-gradient(90deg, #7c3aed, #ec4899)' }} />
               </div>
-            </div>
+            </button>
           )}
 
-          {/* Sound toggle */}
           <button
-            onClick={() => {
-              const enabled = toggleSound();
-              if (enabled) sounds.click();
-            }}
-            className="p-2 rounded-xl text-gray-400 hover:text-white transition-colors"
-            style={{ background: 'rgba(255,255,255,0.05)' }}
+            onClick={() => { const en = toggleSound(); if (en) sounds.click(); }}
+            className="p-2 rounded-xl text-gray-300 hover:text-white bg-white/5"
             title={state.sound ? 'Звук включен' : 'Звук выключен'}
           >
             {state.sound !== false ? '🔊' : '🔇'}
           </button>
 
-          {/* Settings button */}
           <button
-            onClick={() => {
-              sounds.click();
-              if (onOpenSettings) onOpenSettings();
-            }}
-            className="p-2 rounded-xl text-gray-400 hover:text-white transition-colors"
-            style={{ background: 'rgba(255,255,255,0.05)' }}
-            title="Настройки темы и озвучки"
+            onClick={() => { sounds.click(); if (onOpenSettings) onOpenSettings(); }}
+            className="p-2 rounded-xl text-gray-300 hover:text-white bg-white/5"
+            title="Настройки темы, озвучки и пароля"
           >
             ⚙️
           </button>
 
-          {/* User name & Logout */}
-          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/5 border border-white/10 text-xs">
             <span>{user?.avatar || '👤'}</span>
-            <span className="font-semibold text-gray-200 hidden sm:inline">{user?.name}</span>
+            <span className="font-semibold text-gray-100 hidden sm:inline max-w-[130px] truncate">{user?.name}</span>
             <button
               onClick={logout}
-              className="text-gray-400 hover:text-rose-400 transition-colors ml-1 p-1"
+              className="text-gray-400 hover:text-rose-400 p-1"
               title="Выйти из аккаунта"
             >
               🚪
@@ -536,108 +629,90 @@ function Navbar({ page, setPage, store, onOpenSettings }) {
         </div>
       </nav>
 
-      {/* Mobile Bottom Navigation Bar (Fixed 5 Touch Tabs) */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 h-16 flex items-center justify-around px-2 border-t border-purple-500/25 safe-bottom"
-        style={{
-          background: 'rgba(15, 15, 26, 0.96)',
-          backdropFilter: 'blur(20px)',
-        }}>
+      {/* Понятная мобильная нижняя панель */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 h-16 flex items-center justify-around px-1 border-t border-purple-500/30 safe-bottom"
+        style={{ background: 'rgba(13, 13, 24, 0.98)', backdropFilter: 'blur(20px)' }}>
         {mobilePrimaryTabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => handleNavClick(tab.id)}
-            className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-bold transition-transform active:scale-90 ${
+            className={`relative flex flex-col items-center justify-center flex-1 h-full py-1 text-[11px] font-bold transition-transform active:scale-90 ${
               page === tab.id && !drawerOpen ? 'text-purple-400' : 'text-gray-400'
             }`}
           >
             <span className="text-xl leading-none mb-0.5">{tab.icon}</span>
-            <span className="truncate max-w-[64px]">{tab.label}</span>
+            <span className="truncate max-w-[70px]">{tab.label}</span>
+            {tab.badge > 0 && (
+              <span className="absolute top-1.5 right-3 px-1.5 rounded-full bg-rose-500 text-white text-[9px] font-black">
+                {tab.badge}
+              </span>
+            )}
           </button>
         ))}
 
-        {/* 5th Tab: Mobile Drawer Button */}
         <button
           onClick={() => { sounds.click(); setDrawerOpen(!drawerOpen); }}
-          className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-bold transition-transform active:scale-90 ${
+          className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[11px] font-bold transition-transform active:scale-90 ${
             drawerOpen ? 'text-pink-400' : 'text-gray-400'
           }`}
         >
           <span className="text-xl leading-none mb-0.5">{drawerOpen ? '✕' : '☰'}</span>
-          <span>{drawerOpen ? 'Закрыть' : 'Ещё'}</span>
+          <span>{drawerOpen ? 'Закрыть' : 'Меню'}</span>
         </button>
       </div>
 
-      {/* Mobile Slide-Up Drawer Sheet */}
+      {/* Понятное выдвижное меню на телефоне (по категориям) */}
       {drawerOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
-          {/* Backdrop */}
-          <div
-            onClick={() => setDrawerOpen(false)}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
-          />
+          <div onClick={() => setDrawerOpen(false)} className="fixed inset-0 bg-black/75 backdrop-blur-sm" />
+          <div className="relative z-10 w-full max-h-[86vh] overflow-y-auto bg-[#131324] border-t border-purple-500/40 rounded-t-3xl p-5 space-y-5 shadow-2xl animate-slideUp safe-bottom">
+            <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto -mt-1" />
 
-          {/* Sheet Body */}
-          <div className="relative z-10 w-full max-h-[85vh] overflow-y-auto bg-[#131322] border-t border-purple-500/40 rounded-t-3xl p-5 space-y-4 shadow-2xl animate-slideUp safe-bottom">
-            <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto -mt-1 mb-2" />
-            
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">{user?.avatar || '🧑‍🎓'}</span>
+              <div className="flex items-center gap-2.5">
+                <span className="text-3xl">{user?.avatar || '🧑‍🎓'}</span>
                 <div>
                   <div className="font-bold text-white text-sm">{user?.name}</div>
-                  <div className="text-[11px] text-purple-300">
-                    {isTeacher ? 'Преподаватель' : `Ученик • Ур. ${user?.level || 1} (${user?.xp || 0} XP)`}
+                  <div className="text-xs text-purple-300">
+                    {isTeacher ? 'Учитель' : `${user?.class_name || 'Ученик'} • Ур. ${user?.level || 1} (${user?.xp || 0} XP)`}
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => setDrawerOpen(false)}
-                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-white"
-              >
-                ✕
-              </button>
+              <button onClick={() => setDrawerOpen(false)} className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-gray-300 font-bold">✕</button>
             </div>
 
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Все разделы платформы:</div>
+            {groupedSections.map(sec => (
+              <div key={sec.group} className="space-y-2">
+                <div className="text-xs font-black text-purple-300 uppercase tracking-wider">{sec.group}</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {sec.items.map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => handleNavClick(tab.id)}
+                      className={`p-3 rounded-2xl border text-left flex items-center gap-2 transition-all active:scale-95 ${
+                        page === tab.id ? 'bg-purple-900/50 border-purple-400 text-white font-bold' : 'bg-white/5 border-white/10 text-gray-200'
+                      }`}
+                    >
+                      <span className="text-lg shrink-0">{tab.icon}</span>
+                      <span className="text-xs font-semibold leading-tight">{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
 
-            <div className="grid grid-cols-2 gap-2.5">
-              {currentTabs.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => handleNavClick(tab.id)}
-                  className={`p-3 rounded-2xl border text-left flex items-center gap-2.5 transition-all active:scale-95 ${
-                    page === tab.id
-                      ? 'bg-purple-900/40 border-purple-500 text-white font-bold'
-                      : 'bg-white/5 border-white/10 text-gray-300'
-                  }`}
-                >
-                  <span className="text-xl">{tab.icon}</span>
-                  <span className="text-xs font-semibold">{tab.label}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
-              <button
-                onClick={() => { toggleSound(); sounds.click(); }}
-                className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 flex items-center justify-center gap-1.5"
-              >
-                <span>{state.sound !== false ? '🔊' : '🔇'}</span>
-                <span>{state.sound !== false ? 'Звук' : 'Без звука'}</span>
-              </button>
-
+            <div className="pt-2 border-t border-white/10 flex items-center gap-2">
               <button
                 onClick={() => { if (onOpenSettings) onOpenSettings(); setDrawerOpen(false); }}
-                className="py-3 px-3 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-purple-300 flex items-center justify-center gap-1"
+                className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-purple-200"
               >
-                <span>⚙️</span> Тема
+                ⚙️ Тема, голос и пароль
               </button>
-
               <button
                 onClick={logout}
-                className="py-3 px-3 rounded-xl bg-rose-950/40 border border-rose-500/40 text-xs font-bold text-rose-300 flex items-center justify-center gap-1"
+                className="py-3 px-4 rounded-xl bg-rose-950/60 border border-rose-500/40 text-xs font-bold text-rose-200"
               >
-                <span>🚪</span>
+                🚪 Выйти
               </button>
             </div>
           </div>
@@ -650,116 +725,67 @@ function Navbar({ page, setPage, store, onOpenSettings }) {
 // =============================================================================
 // АНТИЧИТ ТЕСТИРОВАНИЕ ДЛЯ УЧЕНИКА (ЗАЩИТА ОТ СПИСЫВАНИЯ)
 // =============================================================================
-function ExamTasksPage({ store, activeTopic }) {
-  const [selectedTopic, setSelectedTopic] = useState(activeTopic || 'chered');
+function ExamTasksPage({ store, activeTopic, initialAssignment = null, onClearAssignment }) {
+  const [selectedTopic, setSelectedTopic] = useState(
+    initialAssignment?.taskConfig?.topicId || activeTopic || 'chered'
+  );
   const [questions, setQuestions] = useState([]);
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [score, setScore] = useState(0);
   const [mode, setMode] = useState('start'); // 'start' | 'exam' | 'result'
-  const [timer, setTimer] = useState(25);
+  const [timer, setTimer] = useState(30);
 
-  // Античит-метрики
-  const [tabSwitches, setTabSwitches] = useState(0);
-  const [copyAttempts, setCopyAttempts] = useState(0);
+  const acMetricsRef = useRef({ tabSwitches: 0, copyAttempts: 0, hadBrowserExit: false });
   const [suspiciousSpeedCount, setSuspiciousSpeedCount] = useState(0);
-  const [showWarningModal, setShowWarningModal] = useState(false);
-  const [cheatAlertMsg, setCheatAlertMsg] = useState('');
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
   const [examStartTime, setExamStartTime] = useState(null);
 
-  const { state, reportAntiCheat, submitTest } = store;
-  const user = state.user;
+  const { reportAntiCheat, submitTest } = store;
 
-  // Детектор переключения вкладок
+  useEffect(() => {
+    if (initialAssignment?.taskConfig?.topicId) {
+      startExam(initialAssignment.taskConfig.topicId);
+    }
+  }, [initialAssignment]);
+
   useEffect(() => {
     if (mode !== 'exam') return;
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        sounds.wrong();
-        setTabSwitches(prev => {
-          const next = prev + 1;
-          reportAntiCheat('TAB_BLUR', `Переключение вкладки #${next} на задании #${currentIdx + 1}`);
-
-          setCheatAlertMsg(
-            `⚠️ ВНИМАНИЕ: Зафиксирован уход с вкладки тестирования! (Нарушение #${next} из 3). Попытка перехода на другой сайт зафиксирована в журнале учителя.`
-          );
-          setShowWarningModal(true);
-
-          if (next >= 3) {
-            // Принудительное завершение
-            finishExam(score, questions.length, next, copyAttempts, suspiciousSpeedCount);
-          }
-          return next;
-        });
-      }
-    };
-
-    const handleBlur = () => {
-      // Фокус окна потерян
-      sounds.wrong();
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('blur', handleBlur);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleBlur);
-    };
-  }, [mode, currentIdx, score, copyAttempts, suspiciousSpeedCount]);
-
-  // Таймер вопроса
-  useEffect(() => {
-    if (mode === 'exam' && timer > 0 && !showWarningModal) {
+    if (timer > 0) {
       const interval = setInterval(() => setTimer(t => t - 1), 1000);
       return () => clearInterval(interval);
-    } else if (timer === 0 && mode === 'exam') {
-      handleAnswer(null);
     }
-  }, [mode, timer, showWarningModal]);
+    handleAnswer(null);
+  }, [mode, timer]);
 
-  const startExam = () => {
+  const startExam = (topicOverride) => {
     sounds.click();
-    const qs = generateQuestions(selectedTopic, 'all', 6);
-    // Перемешиваем варианты для защиты от списывания букв
+    const targetTopic = topicOverride || selectedTopic;
+    const qs = generateQuestions(targetTopic, 'all', initialAssignment?.question_count || 6);
     const randomized = qs.map(q => {
       if (!q.options) return q;
       const opts = [...q.options].sort(() => Math.random() - 0.5);
       return { ...q, options: opts };
     });
 
+    acMetricsRef.current = { tabSwitches: 0, copyAttempts: 0, hadBrowserExit: false };
     setQuestions(randomized);
     setCurrentIdx(0);
-    setSelectedAnswer(null);
     setScore(0);
-    setTabSwitches(0);
-    setCopyAttempts(0);
     setSuspiciousSpeedCount(0);
-    setTimer(25);
+    setTimer(30);
     setQuestionStartTime(Date.now());
     setExamStartTime(Date.now());
     setMode('exam');
-  };
-
-  const handleCopyAttempt = (e) => {
-    e.preventDefault();
-    sounds.wrong();
-    setCopyAttempts(c => c + 1);
-    reportAntiCheat('COPY_ATTEMPT', `Попытка копирования задания #${currentIdx + 1}`);
-    alert('🚫 Копирование заданий запрещено правилами академической честности! Попытка зафиксирована в журнале учителя.');
   };
 
   const handleAnswer = (ans) => {
     const elapsedSec = (Date.now() - questionStartTime) / 1000;
     let fastCount = suspiciousSpeedCount;
 
-    // Проверка подозрительно быстрых ответов (<1.2 секунды)
-    if (elapsedSec < 1.2 && ans !== null) {
+    if (elapsedSec < 1.0 && ans !== null) {
       fastCount += 1;
       setSuspiciousSpeedCount(fastCount);
-      reportAntiCheat('FAST_ANSWER', `Слишком быстрый ответ (${elapsedSec.toFixed(1)} сек) на вопрос #${currentIdx + 1}`);
+      reportAntiCheat('FAST_ANSWER', `Подозрительно быстрый ответ (${elapsedSec.toFixed(1)} сек) на вопросе #${currentIdx + 1}`);
     }
 
     const currentQ = questions[currentIdx];
@@ -772,90 +798,69 @@ function ExamTasksPage({ store, activeTopic }) {
 
     if (currentIdx + 1 < questions.length) {
       setCurrentIdx(i => i + 1);
-      setSelectedAnswer(null);
-      setTimer(25);
+      setTimer(30);
       setQuestionStartTime(Date.now());
     } else {
-      finishExam(nextScore, questions.length, tabSwitches, copyAttempts, fastCount);
+      finishExam(nextScore, questions.length, fastCount);
     }
   };
 
-  const finishExam = async (finalScore, totalQ, tabs, copies, fast) => {
-    const duration = Math.round((Date.now() - examStartTime) / 1000);
-    const acc = Math.round((finalScore / totalQ) * 100);
+  const finishExam = async (finalScore, totalQ, fast) => {
+    const duration = Math.max(1, Math.round((Date.now() - (examStartTime || Date.now())) / 1000));
+    const acc = Math.round((finalScore / Math.max(1, totalQ)) * 100);
+    const { tabSwitches, copyAttempts, hadBrowserExit } = acMetricsRef.current;
 
     await submitTest({
-      testTitle: `Тест: ${PAMYATKI.find(p => p.id === selectedTopic)?.title || selectedTopic}`,
+      testTitle: initialAssignment?.title || `Тест: ${PAMYATKI.find(p => p.id === selectedTopic)?.title || selectedTopic}`,
       topicId: selectedTopic,
+      assignmentId: initialAssignment?.id || null,
       score: finalScore,
       total: totalQ,
       accuracy: acc,
-      tabSwitches: tabs,
-      copyAttempts: copies,
+      tabSwitches,
+      copyAttempts,
+      hadBrowserExit,
       suspiciousSpeedCount: fast,
       durationSeconds: duration,
     });
 
+    if (onClearAssignment) onClearAssignment();
     setMode('result');
   };
 
   const currentQ = questions[currentIdx];
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 relative animate-fadeIn select-none"
-      onCopy={handleCopyAttempt}
-      onCut={handleCopyAttempt}
-      onContextMenu={e => { e.preventDefault(); handleCopyAttempt(e); }}
-    >
-      {/* Dynamic Anti-Screenshot Watermark */}
-      {mode === 'exam' && <AntiCheatWatermark user={user} />}
-
-      {/* Warning Alert Modal */}
-      {showWarningModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-          <div className="card max-w-md p-6 text-center space-y-4 border-rose-500 bg-rose-950/80 shadow-2xl">
-            <div className="text-5xl">🚨</div>
-            <h3 className="text-xl font-black text-rose-300">НАРУШЕНИЕ ДИСЦИПЛИНЫ ТЕСТИРОВАНИЯ</h3>
-            <p className="text-xs text-rose-100 leading-relaxed">{cheatAlertMsg}</p>
-            <button
-              onClick={() => { sounds.click(); setShowWarningModal(false); }}
-              className="btn-primary w-full py-2.5 text-xs font-bold bg-rose-600 hover:bg-rose-700"
-            >
-              Я понял, возвращаюсь к тесту
-            </button>
-          </div>
-        </div>
-      )}
-
+    <div className="max-w-3xl mx-auto space-y-6 relative animate-fadeIn pb-20">
       {mode === 'start' ? (
-        <div className="card p-8 text-center space-y-6">
+        <div className="card p-6 sm:p-8 text-center space-y-6">
           <div className="inline-block p-4 rounded-3xl bg-purple-500/20 text-4xl mb-1">🛡️</div>
-          <h1 className="text-3xl font-black text-white">Режим защищённого тестирования</h1>
-          <p className="text-gray-300 text-sm max-w-lg mx-auto">
-            Здесь включена система защиты от списывания. Результаты с аналитикой честности передаются учителю.
+          <h1 className="text-2xl sm:text-3xl font-black text-white">Защищённое тестирование по темам</h1>
+          <p className="text-gray-300 text-xs sm:text-sm max-w-lg mx-auto">
+            Включена жёсткая защита: полный экран, запрет копирования и моментальный детект попытки закрыть или свернуть браузер.
           </p>
 
           <div className="grid sm:grid-cols-3 gap-3 text-left max-w-lg mx-auto">
             <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs">
-              <div className="font-bold text-purple-300 mb-1">👁️ Контроль вкладок</div>
-              <div className="text-gray-400">Уход с вкладки считается попыткой списывания</div>
+              <div className="font-bold text-purple-300 mb-1">🔒 Контроль выхода</div>
+              <div className="text-gray-400">Закрытие браузера и смена вкладки фиксируются сразу</div>
             </div>
             <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs">
               <div className="font-bold text-purple-300 mb-1">🚫 Блок буфера</div>
-              <div className="text-gray-400">Копирование заданий и контекстное меню отключены</div>
+              <div className="text-gray-400">Копирование и скриншот PrintScreen отключены</div>
             </div>
             <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs">
-              <div className="font-bold text-purple-300 mb-1">🔀 Анти-подглядывание</div>
-              <div className="text-gray-400">Варианты ответов перемешаны, наложен водяной знак</div>
+              <div className="font-bold text-purple-300 mb-1">🥪 Пауза 10 мин</div>
+              <div className="text-gray-400">Официальный перерыв по кнопке без штрафа</div>
             </div>
           </div>
 
           <div className="max-w-xs mx-auto space-y-3">
-            <label className="block text-xs font-bold text-gray-400 uppercase">Выбери тему теста:</label>
+            <label className="block text-xs font-bold text-gray-400 uppercase">Выберите тему теста:</label>
             <select
               value={selectedTopic}
               onChange={e => setSelectedTopic(e.target.value)}
-              className="input-field py-2 text-sm bg-slate-900"
+              className="input-field py-2.5 text-sm bg-slate-900"
             >
               {PAMYATKI.map(p => (
                 <option key={p.id} value={p.id}>{p.icon} {p.title}</option>
@@ -863,87 +868,84 @@ function ExamTasksPage({ store, activeTopic }) {
             </select>
 
             <button
-              onClick={startExam}
-              className="btn-primary w-full py-3 text-sm font-bold shadow-xl"
+              onClick={() => startExam()}
+              className="btn-primary w-full py-3.5 text-sm font-bold shadow-xl"
             >
               Начать тест под защитой 🛡️
             </button>
           </div>
         </div>
       ) : mode === 'exam' && currentQ ? (
-        <div className="card p-6 space-y-6 relative">
-          {/* Top Anti-cheat status bar */}
-          <div className="flex items-center justify-between text-xs font-bold">
-            <span className="text-gray-400">Вопрос {currentIdx + 1} из {questions.length}</span>
-            <div className="flex items-center gap-3">
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                tabSwitches === 0 ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40' : 'bg-rose-950 text-rose-300 border border-rose-500/50'
-              }`}>
-                🛡️ Уходов: {tabSwitches} / 3
-              </span>
-              <span className={timer <= 5 ? 'text-rose-400 font-mono animate-pulse' : 'text-purple-400 font-mono'}>
+        <AntiCheatShield
+          store={store}
+          activityName={`Тест: ${selectedTopic}`}
+          isFinished={false}
+          strictFullscreen={true}
+          onMetricsChange={(m) => { acMetricsRef.current = m; }}
+          onFlagged={() => finishExam(score, questions.length, suspiciousSpeedCount)}
+        >
+          <div className="card p-5 sm:p-6 space-y-5 relative">
+            <div className="flex items-center justify-between text-xs font-bold">
+              <span className="text-gray-400">Вопрос {currentIdx + 1} из {questions.length}</span>
+              <span className={timer <= 6 ? 'text-rose-400 font-mono animate-pulse text-sm' : 'text-purple-300 font-mono text-sm'}>
                 ⏱️ {timer}с
               </span>
             </div>
-          </div>
 
-          {/* Question text */}
-          <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
-            <h2 className="text-base sm:text-lg font-bold text-white leading-relaxed">
-              {currentQ.q}
-            </h2>
-          </div>
-
-          {/* Options */}
-          {currentQ.options && (
-            <div className="grid sm:grid-cols-2 gap-3">
-              {currentQ.options.map((opt, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleAnswer(opt)}
-                  className="p-4 rounded-xl text-left border border-white/10 bg-white/5 hover:bg-purple-900/30 hover:border-purple-500/50 text-sm font-medium text-gray-200 transition-all flex items-center gap-3"
-                >
-                  <span className="w-6 h-6 rounded-lg bg-black/40 flex items-center justify-center text-xs font-bold text-purple-300">
-                    {String.fromCharCode(65 + idx)}
-                  </span>
-                  <span className="flex-1">{opt}</span>
-                </button>
-              ))}
+            <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+              <h2 className="text-base sm:text-lg font-bold text-white leading-relaxed">
+                {currentQ.q}
+              </h2>
             </div>
-          )}
-        </div>
+
+            {currentQ.options && (
+              <div className="grid sm:grid-cols-2 gap-3">
+                {currentQ.options.map((opt, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleAnswer(opt)}
+                    className="p-4 rounded-xl text-left border border-white/10 bg-white/5 hover:bg-purple-900/30 hover:border-purple-500/50 text-sm font-medium text-gray-200 transition-all flex items-center gap-3"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-black/40 flex items-center justify-center text-xs font-bold text-purple-300 shrink-0">
+                      {String.fromCharCode(65 + idx)}
+                    </span>
+                    <span className="flex-1">{opt}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </AntiCheatShield>
       ) : mode === 'result' ? (
         <div className="card p-8 text-center space-y-6 animate-fadeIn">
           <div className="text-6xl mb-2">
-            {tabSwitches === 0 ? '🏆' : '⚠️'}
+            {acMetricsRef.current.tabSwitches === 0 && !acMetricsRef.current.hadBrowserExit ? '🏆' : '⚠️'}
           </div>
           <div>
             <h2 className="text-2xl font-black text-white">Тест сдан и записан в базу данных!</h2>
-            <p className="text-gray-400 text-xs mt-1">Данные успешно отправлены в кабинет учителя</p>
+            <p className="text-gray-400 text-xs mt-1">Результат отправлен учителю</p>
           </div>
 
           <div className="text-5xl font-black gradient-text">
             {score} / {questions.length}
           </div>
 
-          {/* Anti-cheat audit badge */}
           <div className="p-4 rounded-2xl max-w-md mx-auto space-y-2 border text-xs"
             style={{
-              background: tabSwitches === 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(244, 63, 94, 0.1)',
-              borderColor: tabSwitches === 0 ? 'rgba(16, 185, 129, 0.4)' : 'rgba(244, 63, 94, 0.4)',
+              background: acMetricsRef.current.tabSwitches === 0 && !acMetricsRef.current.hadBrowserExit ? 'rgba(16, 185, 129, 0.1)' : 'rgba(244, 63, 94, 0.1)',
+              borderColor: acMetricsRef.current.tabSwitches === 0 && !acMetricsRef.current.hadBrowserExit ? 'rgba(16, 185, 129, 0.4)' : 'rgba(244, 63, 94, 0.4)',
             }}>
-            <div className="font-bold flex items-center justify-center gap-2 text-sm">
-              <span>{tabSwitches === 0 ? '🟢 Пройдено честно' : '🔴 Зафиксированы подозрительные действия'}</span>
+            <div className="font-bold text-sm">
+              {acMetricsRef.current.tabSwitches === 0 && !acMetricsRef.current.hadBrowserExit
+                ? '🟢 Пройдено честно'
+                : '🔴 Зафиксирован уход / выход из браузера'}
             </div>
             <div className="text-gray-300">
-              Переключений вкладок: <strong>{tabSwitches}</strong> · Попыток копирования: <strong>{copyAttempts}</strong>
+              Выходов/переключений: <strong>{acMetricsRef.current.tabSwitches}</strong> · Копирований: <strong>{acMetricsRef.current.copyAttempts}</strong>
             </div>
           </div>
 
-          <button
-            onClick={() => setMode('start')}
-            className="btn-primary py-2.5 px-6 text-xs font-bold"
-          >
+          <button onClick={() => setMode('start')} className="btn-primary py-2.5 px-6 text-xs font-bold">
             Пройти другой тест ➜
           </button>
         </div>
@@ -953,177 +955,212 @@ function ExamTasksPage({ store, activeTopic }) {
 }
 
 // =============================================================================
-// АНТИЧИТ МОНИТОР ДЛЯ УЧИТЕЛЯ (РЕАЛЬНЫЕ ДАННЫЕ ИЗ БАЗЫ)
+// АНТИЧИТ МОНИТОР ДЛЯ УЧИТЕЛЯ (С ФИЛЬТРОМ ПО КЛАССАМ И ДЕТЕКТОМ ВЫХОДА)
 // =============================================================================
 function TeacherAntiCheatMonitor() {
   const [submissions, setSubmissions] = useState([]);
   const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [classes, setClasses] = useState([]);
+  const [classFilter, setClassFilter] = useState('all');
 
   const fetchData = async () => {
-    setLoading(true);
     try {
-      const res1 = await fetch('/api/teacher/submissions');
-      const data1 = await res1.json();
-      if (data1.submissions) setSubmissions(data1.submissions);
-
-      const res2 = await fetch('/api/teacher/anticheat-logs');
-      const data2 = await res2.json();
-      if (data2.logs) setLogs(data2.logs);
-    } catch (e) {
-      console.error('Fetch error:', e);
-    } finally {
-      setLoading(false);
-    }
+      const q = classFilter !== 'all' ? `?className=${encodeURIComponent(classFilter)}` : '';
+      const [r1, r2, r3] = await Promise.all([
+        fetch(`/api/teacher/submissions${q}`),
+        fetch(`/api/teacher/anticheat-logs${q}`),
+        fetch('/api/classes'),
+      ]);
+      const [d1, d2, d3] = await Promise.all([r1.json(), r2.json(), r3.json()]);
+      if (d1.submissions) setSubmissions(d1.submissions);
+      if (d2.logs) setLogs(d2.logs);
+      if (d3.classes) setClasses(d3.classes);
+    } catch {}
   };
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 8000); // авто-обновление каждые 8 секунд
+    const interval = setInterval(fetchData, 8000);
     return () => clearInterval(interval);
-  }, []);
+  }, [classFilter]);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 animate-fadeIn">
+    <div className="max-w-5xl mx-auto space-y-6 animate-fadeIn pb-20">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-white">🛡️ Монитор защиты от списывания</h1>
-          <p className="text-gray-400 text-sm">
-            Аудит академической честности в реальном времени из базы данных SQLite
+          <h1 className="text-2xl sm:text-3xl font-black text-white">🛡️ Монитор античита</h1>
+          <p className="text-gray-400 text-xs sm:text-sm">
+            Детектор выхода из браузера, переключения вкладок, копирования и фуллскрина (SQLite)
           </p>
         </div>
 
-        <button
-          onClick={fetchData}
-          className="btn-secondary text-xs py-2 px-4 self-start flex items-center gap-1.5"
-        >
-          <span>🔄</span> Обновить данные
-        </button>
+        <div className="flex items-center gap-2">
+          <select
+            className="input-field py-2 text-xs bg-slate-900"
+            value={classFilter}
+            onChange={e => setClassFilter(e.target.value)}
+          >
+            <option value="all">Все классы</option>
+            {classes.map(c => <option key={c.name} value={c.name}>{c.name} класс</option>)}
+          </select>
+          <button onClick={fetchData} className="btn-secondary text-xs py-2 px-4 shrink-0">
+            🔄 Обновить
+          </button>
+        </div>
       </div>
 
-      {/* Submissions with cheat status */}
-      <div className="card p-6 space-y-4">
-        <h2 className="text-base font-bold text-white flex items-center gap-2">
-          <span>📋</span> Сданные работы учеников
-        </h2>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-white/10 text-gray-400 font-bold">
-                <th className="pb-3">Ученик</th>
-                <th className="pb-3">Тест</th>
-                <th className="pb-3">Результат</th>
-                <th className="pb-3">Уходов с вкладки</th>
-                <th className="pb-3">Копирований</th>
-                <th className="pb-3">Статус честности</th>
-                <th className="pb-3">Время сдачи</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {submissions.map((sub, i) => (
-                <tr key={i} className="hover:bg-white/5 transition-colors">
-                  <td className="py-3 font-bold text-white">{sub.student_name}</td>
-                  <td className="py-3 text-gray-300">{sub.test_title}</td>
-                  <td className="py-3">
-                    <span className="font-bold text-purple-300">{sub.score} / {sub.total}</span>
-                    <span className="text-gray-500 text-[10px] ml-1">({sub.accuracy}%)</span>
-                  </td>
-                  <td className="py-3">
-                    <span className={sub.tab_switches > 0 ? 'text-rose-400 font-bold' : 'text-gray-400'}>
-                      {sub.tab_switches} раз
-                    </span>
-                  </td>
-                  <td className="py-3">
-                    <span className={sub.copy_attempts > 0 ? 'text-rose-400 font-bold' : 'text-gray-400'}>
-                      {sub.copy_attempts}
-                    </span>
-                  </td>
-                  <td className="py-3">
-                    {sub.cheat_status === 'CLEAN' ? (
-                      <span className="badge bg-emerald-950 text-emerald-300 border border-emerald-500/40">
-                        🟢 Честно
-                      </span>
-                    ) : sub.cheat_status === 'SUSPICIOUS' ? (
-                      <span className="badge bg-amber-950 text-amber-300 border border-amber-500/40">
-                        🟡 Подозрение
-                      </span>
-                    ) : (
-                      <span className="badge bg-rose-950 text-rose-300 border border-rose-500/50">
-                        🔴 Списывание
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 text-gray-400 text-[10px]">
-                    {new Date(sub.submitted_at).toLocaleTimeString('ru-RU')}
-                  </td>
+      {/* Сданные работы */}
+      <div className="card p-5 sm:p-6 space-y-4">
+        <h2 className="text-base font-bold text-white">📋 Сданные работы ({submissions.length})</h2>
+        {submissions.length === 0 ? (
+          <div className="text-xs text-gray-400 p-4 text-center">Сданных работ пока нет.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-white/10 text-gray-400 font-bold">
+                  <th className="pb-3 pr-3">Ученик</th>
+                  <th className="pb-3 pr-3">Класс</th>
+                  <th className="pb-3 pr-3">Работа</th>
+                  <th className="pb-3 pr-3">Балл</th>
+                  <th className="pb-3 pr-3">Выходов</th>
+                  <th className="pb-3 pr-3">Статус</th>
+                  <th className="pb-3">Время</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {submissions.map((sub, i) => (
+                  <tr key={i} className="hover:bg-white/5">
+                    <td className="py-3 pr-3 font-bold text-white">{sub.student_name}</td>
+                    <td className="py-3 pr-3 text-blue-300 font-bold">{sub.class_name || '—'}</td>
+                    <td className="py-3 pr-3 text-gray-300 max-w-[200px] truncate">{sub.test_title}</td>
+                    <td className="py-3 pr-3 font-bold text-purple-300">{sub.score}/{sub.total} ({sub.accuracy}%)</td>
+                    <td className="py-3 pr-3">
+                      <span className={sub.tab_switches > 0 ? 'text-rose-400 font-bold' : 'text-gray-400'}>
+                        {sub.tab_switches}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-3">
+                      {sub.cheat_status === 'CLEAN' ? (
+                        <span className="badge bg-emerald-950 text-emerald-300 border border-emerald-500/40">🟢 Честно</span>
+                      ) : sub.cheat_status === 'SUSPICIOUS' ? (
+                        <span className="badge bg-amber-950 text-amber-300 border border-amber-500/40">🟡 Подозрение</span>
+                      ) : (
+                        <span className="badge bg-rose-950 text-rose-300 border border-rose-500/50">🔴 Списывание</span>
+                      )}
+                    </td>
+                    <td className="py-3 text-gray-400 text-[10px]">
+                      {new Date(sub.submitted_at).toLocaleString('ru-RU')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* Real-time Anti-cheat logs */}
-      <div className="card p-6 space-y-4">
-        <h2 className="text-base font-bold text-white flex items-center gap-2">
-          <span>🚨</span> Лента инцидентов и нарушений
-        </h2>
-
-        <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-          {logs.map((lg, i) => (
-            <div key={i} className="p-3 rounded-xl bg-white/5 border border-white/5 flex items-start justify-between gap-3 text-xs">
-              <div className="space-y-0.5">
-                <div className="font-bold text-rose-300 flex items-center gap-2">
-                  <span>⚠️</span>
-                  <span>{lg.user_name}</span>
-                  <span className="badge text-[10px] bg-black/40 text-gray-300">{lg.event_type}</span>
+      {/* Лента инцидентов */}
+      <div className="card p-5 sm:p-6 space-y-4">
+        <h2 className="text-base font-bold text-white">🚨 Лента инцидентов (включая выход из браузера)</h2>
+        {logs.length === 0 ? (
+          <div className="text-xs text-gray-400 p-4 text-center">Нарушений не зафиксировано.</div>
+        ) : (
+          <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+            {logs.map((lg, i) => {
+              const isCritical = ['BROWSER_EXIT', 'BROWSER_RELOAD_ESCAPE', 'FULLSCREEN_EXIT', 'USER_BANNED'].includes(lg.event_type);
+              return (
+                <div key={i} className={`p-3 rounded-xl border flex items-start justify-between gap-3 text-xs ${
+                  isCritical ? 'bg-rose-950/35 border-rose-500/40' : 'bg-white/5 border-white/10'
+                }`}>
+                  <div className="space-y-0.5">
+                    <div className="font-bold text-rose-300 flex flex-wrap items-center gap-2">
+                      <span>{isCritical ? '🚨' : '⚠️'}</span>
+                      <span>{lg.user_name}</span>
+                      {lg.class_name && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-600/30 text-blue-200">{lg.class_name}</span>}
+                      <span className="badge text-[10px] bg-black/50 text-gray-200">{lg.event_type}</span>
+                    </div>
+                    <div className="text-gray-300 text-[11px]">{lg.details}</div>
+                  </div>
+                  <div className="text-[10px] text-gray-400 whitespace-nowrap">
+                    {new Date(lg.timestamp).toLocaleTimeString('ru-RU')}
+                  </div>
                 </div>
-                <div className="text-gray-300 text-[11px]">{lg.details}</div>
-              </div>
-              <div className="text-[10px] text-gray-500 whitespace-nowrap">
-                {new Date(lg.timestamp).toLocaleTimeString('ru-RU')}
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 // =============================================================================
-// STUDENT HOME DASHBOARD
+// STUDENT HOME DASHBOARD (ПОНЯТНЫЙ НА ТЕЛЕФОНЕ И ПК)
 // =============================================================================
-function StudentHome({ store, setPage }) {
+function StudentHome({ store, setPage, pendingAssignments = [], onLaunchAssignment }) {
   const { state } = store;
   const user = state.user;
   const lp = store.getLevelProgress();
 
   return (
-    <div className="space-y-8 animate-fadeIn">
+    <div className="space-y-6 sm:space-y-8 animate-fadeIn pb-20">
+      {/* Срочный блок: Задания от учителя */}
+      {pendingAssignments.length > 0 && (
+        <div className="card p-5 border-2 border-amber-500/60 bg-amber-950/25 space-y-3 shadow-xl">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 font-black text-amber-300 text-sm sm:text-base">
+              <span>📌</span> Тебе назначены задания от учителя ({pendingAssignments.length})
+            </div>
+            <button onClick={() => setPage('assignments')} className="text-xs font-bold text-amber-200 underline">
+              Все задания ➜
+            </button>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-2.5">
+            {pendingAssignments.slice(0, 2).map(a => (
+              <div key={a.id} className="p-3.5 rounded-xl bg-black/40 border border-amber-500/30 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-bold text-white text-xs sm:text-sm truncate">{a.title}</div>
+                  <div className="text-[11px] text-gray-300">
+                    {a.target_type === 'student' ? '👤 Личное задание' : `🏫 Для ${a.target_class}`}
+                    {a.due_date ? ` · ${a.due_date}` : ''}
+                  </div>
+                </div>
+                <button
+                  onClick={() => onLaunchAssignment(a)}
+                  className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs shrink-0"
+                >
+                  Решить ➜
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Hero Welcome */}
-      <div className="relative overflow-hidden rounded-3xl p-8"
+      <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8"
         style={{
-          background: 'linear-gradient(135deg, rgba(124,58,237,0.35), rgba(236,72,153,0.25))',
+          background: 'linear-gradient(135deg, rgba(124,58,237,0.35), rgba(59,130,246,0.22))',
           border: '1px solid rgba(124,58,237,0.4)',
         }}>
         <div className="relative z-10 max-w-2xl">
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-3xl">{user?.avatar || '🧑‍🎓'}</span>
+            <span className="text-4xl">{user?.avatar || '🧑‍🎓'}</span>
             <div>
-              <h1 className="text-3xl sm:text-4xl font-black text-white">
+              <div className="inline-block px-2.5 py-0.5 rounded-lg bg-blue-500/25 border border-blue-400/40 text-blue-200 text-xs font-bold mb-1">
+                {user?.class_name ? `${user.class_name} класс` : 'Ученик'}
+              </div>
+              <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight">
                 Привет, {user?.name}!
               </h1>
-              <p className="text-purple-200 text-sm">Аккаунт ученика · РусЛёрн (защита данных в SQLite)</p>
             </div>
           </div>
 
-          {/* Level Progress */}
-          <div className="mt-6 p-4 rounded-2xl bg-black/30 border border-white/10 max-w-md">
+          <div className="mt-5 p-4 rounded-2xl bg-black/35 border border-white/10 max-w-md">
             <div className="flex justify-between items-center text-xs font-bold mb-2">
               <span className="text-purple-300">Уровень {user?.level || 1}</span>
-              <span className="text-gray-300">{lp.current} / {lp.needed} XP до ур. {(user?.level || 1) + 1}</span>
+              <span className="text-gray-200">{lp.current} / {lp.needed} XP до ур. {(user?.level || 1) + 1}</span>
             </div>
             <div className="progress-bar h-2.5">
               <div className="progress-fill" style={{ width: `${lp.percent}%` }} />
@@ -1132,8 +1169,28 @@ function StudentHome({ store, setPage }) {
         </div>
       </div>
 
-      {/* Featured EGE & Author Formulas Banners */}
+      {/* 2 главных режима (Решу ОГЭ + Полный ЕГЭ) */}
       <div className="grid md:grid-cols-2 gap-4">
+        <button
+          onClick={() => { sounds.click(); setPage('reshu_oge'); }}
+          className="card p-6 text-left relative overflow-hidden group hover:scale-[1.01] transition-all border-blue-500/50"
+          style={{ background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.35), rgba(15, 15, 26, 0.95))' }}
+        >
+          <div className="flex items-start justify-between mb-3">
+            <span className="text-4xl">📘</span>
+            <span className="badge bg-blue-500/25 text-blue-200 border border-blue-400/40 text-xs font-bold">
+              Как на Решу ОГЭ!
+            </span>
+          </div>
+          <h3 className="text-xl font-black text-white group-hover:text-blue-300 transition-colors">
+            Решу ОГЭ РусЛёрн (9 класс)
+          </h3>
+          <p className="text-xs sm:text-sm text-gray-300 mt-1 leading-relaxed">
+            Конструктор заданий №2–12, номера вариантов (#2026), подробные разборы ФИПИ и перевод баллов в оценку «2–5».
+          </p>
+          <div className="mt-4 text-xs font-bold text-blue-300">Открыть каталог заданий ➜</div>
+        </button>
+
         <button
           onClick={() => { sounds.click(); setPage('ege_exam'); }}
           className="card p-6 text-left relative overflow-hidden group hover:scale-[1.01] transition-all border-purple-500/50"
@@ -1141,159 +1198,48 @@ function StudentHome({ store, setPage }) {
         >
           <div className="flex items-start justify-between mb-3">
             <span className="text-4xl">🎯</span>
-            <span className="badge bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[11px] font-bold">
-              27 заданий ФИПИ
+            <span className="badge bg-purple-500/20 text-purple-300 border border-purple-500/40 text-xs font-bold">
+              27 заданий ЕГЭ
             </span>
           </div>
           <h3 className="text-xl font-black text-white group-hover:text-purple-300 transition-colors">
-            Решать ЕГЭ 2026/2027 онлайн
+            Симулятор ЕГЭ 2026/2027
           </h3>
-          <p className="text-xs text-gray-300 mt-1 leading-relaxed">
-            Полный вариант с официальным таймером, мгновенной проверкой, разбором ошибок, шкалой в 100 баллов и чекером сочинения.
+          <p className="text-xs sm:text-sm text-gray-300 mt-1 leading-relaxed">
+            Полный вариант с официальным таймером, защитой AntiCheatShield, шкалой 100 баллов и проверкой сочинения.
           </p>
-          <div className="mt-4 text-xs font-bold text-purple-400 flex items-center gap-1">
-            Начать решение варианта ➜
-          </div>
-        </button>
-
-        <button
-          onClick={() => { sounds.click(); setPage('formulas'); }}
-          className="card p-6 text-left relative overflow-hidden group hover:scale-[1.01] transition-all border-pink-500/50"
-          style={{ background: 'linear-gradient(135deg, rgba(157, 23, 77, 0.35), rgba(15, 15, 26, 0.95))' }}
-        >
-          <div className="flex items-start justify-between mb-3">
-            <span className="text-4xl">⚡</span>
-            <span className="badge bg-pink-500/20 text-pink-300 border border-pink-500/40 text-[11px] font-bold">
-              0% Плагиата
-            </span>
-          </div>
-          <h3 className="text-xl font-black text-white group-hover:text-pink-300 transition-colors">
-            Авторские формулы и алгоритмы
-          </h3>
-          <p className="text-xs text-gray-300 mt-1 leading-relaxed">
-            Метод «ЦелУЮ/МилАЯ», правило «ТО-НО-ТАК», матрица Н/НН и 4 закона корней. Пошаговые блок-схемы без занудных учебников.
-          </p>
-          <div className="mt-4 text-xs font-bold text-pink-400 flex items-center gap-1">
-            Открыть интерактивные формулы ➜
-          </div>
+          <div className="mt-4 text-xs font-bold text-purple-300">Начать вариант ЕГЭ ➜</div>
         </button>
       </div>
 
-      {/* Quick Launch Cards */}
+      {/* Понятная сетка тренажёров */}
       <div>
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <span>⚡</span> Быстрый запуск
+        <h2 className="text-lg sm:text-xl font-bold mb-3 flex items-center gap-2">
+          <span>⚡</span> Полезные тренажёры и игры
         </h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {[
-            {
-              title: 'PVP Дуэли 1 на 1',
-              desc: 'Онлайн-битва с другом по 4-значному PIN-коду до 10 очков',
-              icon: '⚔️',
-              action: () => setPage('pvp_duel'),
-              grad: 'from-purple-600 to-rose-600',
-            },
-            {
-              title: 'ИИ-Диагностика пробелов',
-              desc: 'Персональная тепловая карта и работа над ошибками в 1 клик',
-              icon: '🧠',
-              action: () => setPage('ai_diagnostics'),
-              grad: 'from-indigo-600 to-purple-800',
-            },
-            {
-              title: 'Голосовое сочинение',
-              desc: 'Диктуй в микрофон, система разобьёт на 7 абзацев ФИПИ',
-              icon: '🎤',
-              action: () => setPage('voice_essay'),
-              grad: 'from-pink-600 to-rose-600',
-            },
-            {
-              title: 'Бланки ФИПИ А4',
-              desc: 'Аутентичные бланки №1 и №2 с QR-кодами и ключами в PDF',
-              icon: '📄',
-              action: () => setPage('fipi_forms'),
-              grad: 'from-blue-600 to-indigo-700',
-            },
-            {
-              title: 'Блиц-Спринт (60 сек)',
-              desc: 'Мобильный фаст-тест ударений с комбо-очками',
-              icon: '⚡',
-              action: () => setPage('blitz_sprint'),
-              grad: 'from-amber-500 to-rose-600',
-            },
-            {
-              title: 'Тест с античитом',
-              desc: 'Контрольный срез с фиксацией честности',
-              icon: '🛡️',
-              action: () => setPage('exam_tasks'),
-              grad: 'from-purple-600 to-indigo-700',
-            },
-            {
-              title: 'Тренажёр ударений',
-              desc: 'Орфоэпия ЕГЭ (№4) с голосовой озвучкой',
-              icon: '🎙️',
-              action: () => setPage('orthoepy'),
-              grad: 'from-pink-600 to-rose-700',
-            },
-            {
-              title: 'Словарь паронимов',
-              desc: 'Различай сложные пары слов (№5 ЕГЭ)',
-              icon: '👥',
-              action: () => setPage('paronyms'),
-              grad: 'from-amber-600 to-orange-700',
-            },
-            {
-              title: 'Аудио-диктант',
-              desc: 'Пиши под диктовку и проверяй орфограммы',
-              icon: '✍️',
-              action: () => setPage('dictation'),
-              grad: 'from-emerald-600 to-teal-700',
-            },
+            { title: 'Мои задания', desc: 'Домашки и контрольные от учителя', icon: '📌', page: 'assignments', grad: 'from-amber-500 to-orange-600' },
+            { title: 'Рейтинг класса', desc: 'Кто на 1 месте без списаний', icon: '🏆', page: 'leaderboard', grad: 'from-yellow-500 to-amber-600' },
+            { title: 'PVP Дуэли 1v1', desc: 'Сражение по PIN-коду с другом', icon: '⚔️', page: 'pvp_duel', grad: 'from-purple-600 to-rose-600' },
+            { title: 'ИИ-Диагностика', desc: 'Твои слабые темы и разбор', icon: '🧠', page: 'ai_diagnostics', grad: 'from-indigo-600 to-purple-800' },
+            { title: 'Формулы правил', desc: 'Понятные схемы без зубрёжки', icon: '⚡', page: 'formulas', grad: 'from-pink-600 to-rose-700' },
+            { title: 'Ударения ФИПИ', desc: 'Озвучка слов для №4 ЕГЭ', icon: '🎙️', page: 'orthoepy', grad: 'from-blue-600 to-indigo-700' },
+            { title: 'Паронимы', desc: 'Пары слов для №5 ЕГЭ', icon: '🔤', page: 'paronyms', grad: 'from-teal-600 to-emerald-700' },
+            { title: 'Голос. сочинение', desc: 'Надиктуй сочинение по 7 абзацам', icon: '🎤', page: 'voice_essay', grad: 'from-rose-600 to-pink-700' },
           ].map((item, idx) => (
             <button
               key={idx}
-              onClick={() => { sounds.click(); item.action(); }}
-              className="card text-left group relative overflow-hidden transition-all hover:scale-[1.02]"
+              onClick={() => { sounds.click(); setPage(item.page); }}
+              className="card p-4 text-left group relative overflow-hidden transition-all hover:scale-[1.02]"
             >
               <div className={`absolute inset-0 bg-gradient-to-br ${item.grad} opacity-15 group-hover:opacity-25 transition-opacity`} />
               <div className="relative z-10">
-                <div className="text-3xl mb-2">{item.icon}</div>
-                <div className="font-bold text-white text-base">{item.title}</div>
-                <div className="text-xs text-gray-400 mt-1">{item.desc}</div>
+                <div className="text-2xl sm:text-3xl mb-1.5">{item.icon}</div>
+                <div className="font-bold text-white text-sm">{item.title}</div>
+                <div className="text-xs text-gray-300 mt-1 line-clamp-2">{item.desc}</div>
               </div>
             </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Topics preview */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <span>📖</span> База памяток (5–11 классы)
-          </h2>
-          <button
-            onClick={() => { sounds.click(); setPage('pamyatki'); }}
-            className="text-xs font-semibold text-purple-400 hover:text-purple-300"
-          >
-            Все памятки →
-          </button>
-        </div>
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {PAMYATKI.slice(0, 6).map(p => (
-            <div
-              key={p.id}
-              onClick={() => { sounds.click(); setPage('pamyatki'); }}
-              className="card p-4 cursor-pointer hover:border-purple-500/50 hover:scale-[1.01] transition-all"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <span className="text-2xl">{p.icon}</span>
-                <span className="badge text-[10px] bg-white/10 text-gray-300">{p.grade} кл.</span>
-              </div>
-              <h3 className="font-bold text-sm text-white">{p.title}</h3>
-              <p className="text-xs text-gray-400 mt-1 line-clamp-2">{p.shortDesc}</p>
-            </div>
           ))}
         </div>
       </div>
@@ -1305,94 +1251,46 @@ function StudentHome({ store, setPage }) {
 // TEACHER CABINET
 // =============================================================================
 function TeacherCabinet({ store, setPage }) {
-  const { state } = store;
-  const user = state.user;
+  const user = store.state.user;
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-3xl p-8"
+    <div className="space-y-6 sm:space-y-8 animate-fadeIn pb-20">
+      <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8"
         style={{
           background: 'linear-gradient(135deg, rgba(236,72,153,0.35), rgba(124,58,237,0.25))',
           border: '1px solid rgba(236,72,153,0.4)',
         }}>
         <div className="relative z-10">
-          <span className="badge bg-pink-500/20 text-pink-300 text-xs mb-2">Кабинет учителя</span>
-          <h1 className="text-3xl sm:text-4xl font-black text-white">
+          <span className="badge bg-pink-500/20 text-pink-200 text-xs mb-2">Кабинет руководителя</span>
+          <h1 className="text-2xl sm:text-4xl font-black text-white">
             {user?.name} {user?.avatar || '👩‍🏫'}
           </h1>
-          <p className="text-gray-300 text-sm mt-1">
-            Защищённый доступ: только для преподавателей. Генерация тестов, проверка сочинений и монитор нарушений.
+          <p className="text-gray-200 text-xs sm:text-sm mt-1">
+            Управление классами, модерация никнеймов, предупреждения, выдача вариантов ОГЭ/ЕГЭ и монитор честности SQLite.
           </p>
         </div>
       </div>
 
-      {/* Quick Tools */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[
-          {
-            title: 'Тренажёр ЕГЭ 2026',
-            desc: 'Полный экзаменационный вариант (27 заданий) с разборами',
-            icon: '🎯',
-            action: () => setPage('ege_exam'),
-          },
-          {
-            title: 'Авторские формулы',
-            desc: 'Интерактивные блок-схемы и алгоритмы ФИПИ без плагиата',
-            icon: '⚡',
-            action: () => setPage('formulas'),
-          },
-          {
-            title: 'Античит-монитор',
-            desc: 'Лента нарушений и журнал попыток списать из базы SQLite',
-            icon: '🛡️',
-            action: () => setPage('anticheat_monitor'),
-          },
-          {
-            title: 'Генератор вариантов (А4)',
-            desc: 'Формируй Вариант 1 + Вариант 2 с ключами для печати',
-            icon: '🎲',
-            action: () => setPage('generator'),
-          },
-          {
-            title: 'Бланки ФИПИ (А4 / PDF)',
-            desc: 'Печать официальных бланков №1 и №2 с QR-кодами и ключами',
-            icon: '📄',
-            action: () => setPage('fipi_forms'),
-          },
-          {
-            title: 'Голосовое сочинение',
-            desc: 'Диктовка через микрофон и авто-разметка на 7 абзацев',
-            icon: '🎤',
-            action: () => setPage('voice_essay'),
-          },
-          {
-            title: 'ИИ-Диагностика класса',
-            desc: 'Тепловая карта знаний и целевая ликвидация пробелов',
-            icon: '🧠',
-            action: () => setPage('ai_diagnostics'),
-          },
-          {
-            title: 'Чекер сочинений ЕГЭ',
-            desc: 'Критерии К1–К12, подсчёт слов, структура 7 абзацев',
-            icon: '📑',
-            action: () => setPage('essay_checker'),
-          },
-          {
-            title: 'Журнал успеваемости',
-            desc: 'Таблица классов, средние баллы и аудит честности',
-            icon: '👥',
-            action: () => setPage('students'),
-          },
+          { title: 'Ученики, классы и баны', desc: 'Сортировка по классам, предупреждения, бан за никнеймы, чистка базы и личные задания', icon: '👥', page: 'students' },
+          { title: 'Задания для классов и личные', desc: 'Выдача контрольных вариантов ОГЭ конкретному ученику или всему классу + проверка сдачи', icon: '📋', page: 'assignments' },
+          { title: 'Конструктор «Решу ОГЭ»', desc: 'Собирайте тесты по заданиям №2–12 или по номеру варианта и отправляйте в класс в 1 клик', icon: '📘', page: 'reshu_oge' },
+          { title: 'Античит-монитор SQLite', desc: 'Лента всех выходов из браузера, переключений вкладок и статусов честности работ', icon: '🛡️', page: 'anticheat_monitor' },
+          { title: 'Генератор 2 вариантов А4', desc: 'Печатные Вариант 1 + Вариант 2 с ответами для уроков', icon: '🎲', page: 'generator' },
+          { title: 'Бланки ФИПИ А4 / PDF', desc: 'Аутентичные бланки ответов №1 и №2 с QR-кодами', icon: '📄', page: 'fipi_forms' },
+          { title: 'Чекер сочинений ЕГЭ', desc: 'Проверка по критериям ФИПИ К1–К12 и расчёт баллов', icon: '📑', page: 'essay_checker' },
+          { title: 'Тренажёр ЕГЭ 2026', desc: 'Полный экзаменационный вариант (27 заданий)', icon: '🎯', page: 'ege_exam' },
+          { title: 'Рейтинг учеников школы', desc: 'Просмотр лидеров по классам и баллам', icon: '🏆', page: 'leaderboard' },
         ].map((tool, idx) => (
           <button
             key={idx}
-            onClick={() => { sounds.click(); tool.action(); }}
-            className="card p-5 text-left hover:border-pink-500/50 hover:scale-[1.02] transition-all"
+            onClick={() => { sounds.click(); setPage(tool.page); }}
+            className="card p-5 text-left hover:border-pink-500/50 hover:scale-[1.01] transition-all"
           >
             <div className="text-3xl mb-2">{tool.icon}</div>
             <h3 className="font-bold text-base text-white">{tool.title}</h3>
-            <p className="text-xs text-gray-400 mt-1">{tool.desc}</p>
+            <p className="text-xs text-gray-300 mt-1">{tool.desc}</p>
           </button>
         ))}
       </div>
@@ -2258,65 +2156,6 @@ function EssayChecker() {
   );
 }
 
-function StudentsPage() {
-  const [students, setStudents] = useState([]);
-
-  useEffect(() => {
-    fetch('/api/teacher/students')
-      .then(res => res.json())
-      .then(data => {
-        if (data.students) setStudents(data.students);
-      })
-      .catch(() => {});
-  }, []);
-
-  return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-fadeIn">
-      <h1 className="text-3xl font-black text-white">👥 Журнал успеваемости класса (из БД SQLite)</h1>
-
-      <div className="card p-6 space-y-4">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-white/10 text-gray-400 font-bold">
-                <th className="pb-3">Ученик</th>
-                <th className="pb-3">Логин</th>
-                <th className="pb-3">Уровень / XP</th>
-                <th className="pb-3">Тестов сдано</th>
-                <th className="pb-3">Средняя точность</th>
-                <th className="pb-3">Нарушений вкладок</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {students.map((st, i) => (
-                <tr key={i} className="hover:bg-white/5 transition-colors">
-                  <td className="py-3 flex items-center gap-2 font-bold text-white">
-                    <span>{st.avatar}</span>
-                    <span>{st.name}</span>
-                  </td>
-                  <td className="py-3 text-gray-400 font-mono">{st.username}</td>
-                  <td className="py-3 text-purple-300 font-bold">Ур. {st.level} ({st.xp} XP)</td>
-                  <td className="py-3 text-gray-300">{st.total_tests || 0}</td>
-                  <td className="py-3">
-                    <span className="font-bold text-emerald-400">
-                      {Math.round(st.avg_accuracy || 0)}%
-                    </span>
-                  </td>
-                  <td className="py-3">
-                    <span className={st.total_tab_switches > 0 ? 'text-rose-400 font-bold' : 'text-gray-400'}>
-                      {st.total_tab_switches || 0}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function AchievementsPage({ store }) {
   const { state } = store;
   const unlocked = state.achievements || [];
@@ -2369,15 +2208,16 @@ function AchievementsPage({ store }) {
 }
 
 // =============================================================================
-// ROOT APP COMPONENT (С ПРОВЕРКОЙ АВТОРИЗАЦИИ И СТРОГИМИ ПРАВАМИ)
+// ROOT APP COMPONENT (С ПРОВЕРКОЙ БАНОВ, ПРЕДУПРЕЖДЕНИЙ И НАЗНАЧЕННЫХ ЗАДАНИЙ)
 // =============================================================================
 export default function App() {
   const store = useStore();
-  const { state } = store;
+  const { state, ackWarning } = store;
   const [page, setPage] = useState('home');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [pendingAssignments, setPendingAssignments] = useState([]);
+  const [activeAssignment, setActiveAssignment] = useState(null);
 
-  // Смена темы оформления
   const [currentTheme, setCurrentTheme] = useState(() => {
     if (typeof localStorage !== 'undefined') {
       return localStorage.getItem('ruslearn_theme') || 'cyberpunk';
@@ -2392,19 +2232,56 @@ export default function App() {
     }
   }, [currentTheme]);
 
-  // Если пользователь не залогинен в БД — показываем экран Входа / Регистрации!
+  // Загружаем невыполненные задания для ученика
+  const refreshAssignments = () => {
+    if (!state.user || state.user.role !== 'student') {
+      setPendingAssignments([]);
+      return;
+    }
+    fetch(`/api/student/${state.user.id}/assignments`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.assignments) {
+          setPendingAssignments(d.assignments.filter(a => !a.completion));
+        }
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    refreshAssignments();
+  }, [state.user?.id, page]);
+
   if (!state.user) {
     return <AuthView store={store} />;
   }
 
   const isTeacher = state.user.role === 'teacher';
+  const activeWarning = (state.user.warnings || [])[0] || null;
+
+  const handleLaunchAssignment = (assignment) => {
+    sounds.click();
+    setActiveAssignment(assignment);
+    if (assignment.mode === 'topic') {
+      setPage('exam_tasks');
+    } else {
+      setPage('reshu_oge');
+    }
+  };
 
   const renderContent = () => {
-    // ЗАЩИТА: Если залогинен Учитель
     if (isTeacher) {
       switch (page) {
         case 'home':
           return <TeacherCabinet store={store} setPage={setPage} />;
+        case 'reshu_oge':
+          return <ReshuOgePage store={store} setPage={setPage} />;
+        case 'assignments':
+          return <AssignmentsHubPage store={store} onLaunchAssignment={handleLaunchAssignment} />;
+        case 'students':
+          return <StudentsManagementPage store={store} onAssigned={refreshAssignments} />;
+        case 'leaderboard':
+          return <LeaderboardPage store={store} />;
         case 'site_map':
           return <SiteMapPage store={store} setPage={setPage} />;
         case 'anticheat_monitor':
@@ -2427,8 +2304,6 @@ export default function App() {
           return <GeneratorPage store={store} />;
         case 'essay_checker':
           return <EssayChecker />;
-        case 'students':
-          return <StudentsPage />;
         case 'pamyatki':
           return <PamyatkiPage setPage={setPage} />;
         default:
@@ -2436,10 +2311,30 @@ export default function App() {
       }
     }
 
-    // ЗАЩИТА: Если залогинен Ученик
+    // РОЛЬ: УЧЕНИК
     switch (page) {
       case 'home':
-        return <StudentHome store={store} setPage={setPage} />;
+        return (
+          <StudentHome
+            store={store}
+            setPage={setPage}
+            pendingAssignments={pendingAssignments}
+            onLaunchAssignment={handleLaunchAssignment}
+          />
+        );
+      case 'reshu_oge':
+        return (
+          <ReshuOgePage
+            store={store}
+            setPage={setPage}
+            initialAssignment={activeAssignment?.mode !== 'topic' ? activeAssignment : null}
+            onClearAssignment={() => { setActiveAssignment(null); refreshAssignments(); }}
+          />
+        );
+      case 'assignments':
+        return <AssignmentsHubPage store={store} onLaunchAssignment={handleLaunchAssignment} />;
+      case 'leaderboard':
+        return <LeaderboardPage store={store} />;
       case 'site_map':
         return <SiteMapPage store={store} setPage={setPage} />;
       case 'pvp_duel':
@@ -2457,7 +2352,14 @@ export default function App() {
       case 'formulas':
         return <AuthorFormulasPage store={store} />;
       case 'exam_tasks':
-        return <ExamTasksPage store={store} activeTopic="chered" />;
+        return (
+          <ExamTasksPage
+            store={store}
+            activeTopic="chered"
+            initialAssignment={activeAssignment?.mode === 'topic' ? activeAssignment : null}
+            onClearAssignment={() => { setActiveAssignment(null); refreshAssignments(); }}
+          />
+        );
       case 'pamyatki':
         return <PamyatkiPage setPage={setPage} />;
       case 'generator':
@@ -2471,16 +2373,51 @@ export default function App() {
       case 'achievements':
         return <AchievementsPage store={store} />;
       default:
-        return <StudentHome store={store} setPage={setPage} />;
+        return (
+          <StudentHome
+            store={store}
+            setPage={setPage}
+            pendingAssignments={pendingAssignments}
+            onLaunchAssignment={handleLaunchAssignment}
+          />
+        );
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col justify-between" style={{ background: 'var(--color-bg)' }}>
       <Particles />
-      <Navbar page={page} setPage={setPage} store={store} onOpenSettings={() => setSettingsOpen(true)} />
+      <Navbar
+        page={page}
+        setPage={setPage}
+        store={store}
+        pendingAssignmentsCount={pendingAssignments.length}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
 
-      <main className="relative z-10 max-w-7xl mx-auto px-4 pt-24 pb-28 w-full flex-1">
+      {/* Модальное предупреждение от учителя */}
+      {activeWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <div className="card max-w-md w-full p-6 text-center space-y-4 border-2 border-amber-500 bg-[#1a1306] shadow-2xl">
+            <div className="text-5xl animate-bounce">⚠️</div>
+            <h3 className="text-xl font-black text-amber-300">ПРЕДУПРЕЖДЕНИЕ ОТ УЧИТЕЛЯ</h3>
+            <p className="text-sm text-white leading-relaxed font-semibold">
+              {activeWarning.reason}
+            </p>
+            <div className="text-xs text-gray-400">
+              Выдал: {activeWarning.teacher_name}
+            </div>
+            <button
+              onClick={() => { sounds.click(); ackWarning(activeWarning.id); }}
+              className="btn-primary w-full py-3 text-xs font-black bg-gradient-to-r from-amber-500 to-orange-600"
+            >
+              Я понял(а), ознакомлен(а) ✓
+            </button>
+          </div>
+        </div>
+      )}
+
+      <main className="relative z-10 max-w-7xl mx-auto px-3 sm:px-4 pt-20 sm:pt-24 pb-28 w-full flex-1">
         {renderContent()}
       </main>
 
@@ -2489,10 +2426,11 @@ export default function App() {
         onClose={() => setSettingsOpen(false)}
         currentTheme={currentTheme}
         onSelectTheme={setCurrentTheme}
+        store={store}
       />
 
-      <footer className="relative z-10 py-6 text-center text-xs text-gray-500 border-t border-white/5 no-print">
-        РусЛёрн · База данных SQLite · Защита от списывания, пауза 1-2 раза, PVP Дуэли и ИИ-диагностика · 2026/2027
+      <footer className="relative z-10 py-6 text-center text-xs text-gray-500 border-t border-white/5 no-print mb-16 lg:mb-0">
+        РусЛёрн · МАОУ СОШ № 40 · База данных SQLite, Решу ОГЭ/ЕГЭ и AntiCheat 2.0 · 2026/2027
       </footer>
     </div>
   );

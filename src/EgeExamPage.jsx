@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { EGE_SCORE_TABLE, EGE_TASKS_INFO, EGE_FULL_VARIANT } from './egeData';
 import { AntiCheatShield } from './AntiCheatShield';
 import { sounds } from './sounds';
@@ -6,6 +6,7 @@ import { sounds } from './sounds';
 export function EgeExamPage({ store }) {
   const { state, submitTest, addXP } = store;
   const user = state.user;
+  const acMetricsRef = useRef({ tabSwitches: 0, copyAttempts: 0, hadBrowserExit: false });
 
   // Режимы: 'full_exam' (полный вариант с таймером) или 'task_trainer' (по отдельным заданиям)
   const [mode, setMode] = useState('full_exam');
@@ -180,7 +181,7 @@ export function EgeExamPage({ store }) {
     setResults(examResults);
     setIsFinished(true);
 
-    // Сохраняем в SQLite БД через API
+    // Сохраняем в SQLite БД через API с реальными метриками античита
     if (submitTest) {
       submitTest({
         testTitle: 'Тренировочный вариант ЕГЭ 2026 (Полный вариант)',
@@ -188,8 +189,9 @@ export function EgeExamPage({ store }) {
         score: primaryScore,
         total: 50,
         accuracy,
-        tabSwitches: 0,
-        copyAttempts: 0,
+        tabSwitches: acMetricsRef.current.tabSwitches || 0,
+        copyAttempts: acMetricsRef.current.copyAttempts || 0,
+        hadBrowserExit: Boolean(acMetricsRef.current.hadBrowserExit),
         suspiciousSpeedCount: 0,
         durationSeconds: 210 * 60 - timeLeft
       });
@@ -201,7 +203,12 @@ export function EgeExamPage({ store }) {
   };
 
   return (
-    <AntiCheatShield store={store} activityName="Симулятор ЕГЭ 2026/2027">
+    <AntiCheatShield
+      store={store}
+      activityName="Симулятор ЕГЭ 2026/2027"
+      isFinished={isFinished}
+      onMetricsChange={(m) => { acMetricsRef.current = m; }}
+    >
       <div className="space-y-6 animate-fadeIn pb-16">
         {/* Top Banner */}
       <div className="card p-6 relative overflow-hidden"

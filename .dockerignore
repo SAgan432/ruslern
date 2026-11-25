@@ -1,0 +1,9 @@
+node_modules
+dist
+.git
+*.docx
+*.md
+*.bat
+server/*.db
+server/*.db-wal
+server/*.db-shm
